@@ -26,66 +26,53 @@
   </style>
 </head>
 <body>
-
 <div id="loading">
   <h1>Loading Hospital Room...</h1>
   <div class="loader"></div>
   <p id="loading-info">Preparing VR experience...</p>
 </div>
-
 <div id="ui">
   <div id="q">Find the Adhesive Bandage</div>
   <div id="s">Score: 0/10</div>
   <div id="inst">Move mouse to look around • Center crosshair on object for 2 seconds</div>
 </div>
-
 <div class="gaze"></div>
 <div class="prog" id="prog"></div>
 <div id="fb"></div>
 <button id="vr">Enter VR Mode</button>
-
 <script>
-// ============= ALL FILES IN ROOT (NO FOLDERS!) =============
-// Everything is in the same folder as index.html
+// ===== FIXED CDN PATHS – WILL WORK EVEN IF GLB FILES ARE BIG =====
+const BACKGROUND_FILE = "https://cdn.jsdelivr.net/gh/electivaiamf-droid/Nursing-quiz@main/background.glb";
 
-const BACKGROUND_FILE = "./background.glb";
-
-// Medical supply items - all in root folder!
 const vocab = [
-  {name:"Adhesive Bandage",     file:"bandage.glb",       color:0xF5DEB3, uses:"A small bandage to cover minor cuts or wounds"},
-  {name:"Hand Sanitizer",       file:"sanitizer.glb",     color:0x87CEEB, uses:"A liquid used to disinfect hands"},
-  {name:"Antiseptic Solution",  file:"antiseptic.glb",    color:0xDDA0DD, uses:"A liquid applied to wounds to prevent infection"},
-  {name:"Cotton Balls",         file:"cotton.glb",        color:0xFFFFFF, uses:"Soft, absorbent material used for cleaning wounds"},
-  {name:"Gauze",                file:"gauze.glb",         color:0xFAFAFA, uses:"A type of thin, woven fabric used for dressing wounds"},
-  {name:"Medical Gloves",       file:"gloves.glb",        color:0x98D8C8, uses:"Disposable gloves worn during medical procedures"},
-  {name:"Saline Solution",      file:"saline.glb",        color:0xADD8E6, uses:"A mixture of salt and water, used for cleaning wounds"},
-  {name:"Scissors",             file:"scissors.glb",      color:0xC0C0C0, uses:"A tool for cutting"},
-  {name:"Tweezers",             file:"tweezers.glb",      color:0xB0B0B0, uses:"A tool for picking up small objects"},
-  {name:"Thermometer",          file:"thermometer.glb",   color:0xFF6B6B, uses:"A device used to measure body temperature"}
+  {name:"Adhesive Bandage", file:"bandage.glb", color:0xF5DEB3, uses:"A small bandage to cover minor cuts or wounds"},
+  {name:"Hand Sanitizer", file:"sanitizer.glb", color:0x87CEEB, uses:"A liquid used to disinfect hands"},
+  {name:"Antiseptic Solution", file:"antiseptic.glb", color:0xDDA0DD, uses:"A liquid applied to wounds to prevent infection"},
+  {name:"Cotton Balls", file:"cotton.glb", color:0xFFFFFF, uses:"Soft, absorbent material used for cleaning wounds"},
+  {name:"Gauze", file:"gauze.glb", color:0xFAFAFA, uses:"A type of thin, woven fabric used for dressing wounds"},
+  {name:"Medical Gloves", file:"gloves.glb", color:0x98D8C8, uses:"Disposable gloves worn during medical procedures"},
+  {name:"Saline Solution", file:"saline.glb", color:0xADD8E6, uses:"A mixture of salt and water, used for cleaning wounds"},
+  {name:"Scissors", file:"scissors.glb", color:0xC0C0C0, uses:"A tool for cutting"},
+  {name:"Tweezers", file:"tweezers.glb", color:0xB0B0B0, uses:"A tool for picking up small objects"},
+  {name:"Thermometer", file:"thermometer.glb", color:0xFF6B6B, uses:"A device used to measure body temperature"}
 ];
 // ==========================================================
-
 let q=0, score=0, busy=false, gazed=null, gazeTime=0;
 let scene, camera, renderer, raycaster = new THREE.Raycaster();
 let items = [];
 let questions = [];
 
-// Three.js setup
 scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a2e);
-
 camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
 camera.position.set(0, 1.6, 0);
-
 renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
 renderer.xr.enabled = true;
 renderer.outputEncoding = THREE.sRGBEncoding;
 document.body.appendChild(renderer.domElement);
-
 raycaster = new THREE.Raycaster();
 
-// Lights
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 dirLight.position.set(5, 10, 7);
@@ -94,24 +81,18 @@ const pointLight = new THREE.PointLight(0xffffff, 0.5);
 pointLight.position.set(-5, 5, -5);
 scene.add(pointLight);
 
-// Logging
 function log(msg) {
   console.log(msg);
   document.getElementById('loading-info').textContent = msg;
 }
 
-// Load hospital background
 log('Loading hospital room...');
 const loader = new THREE.GLTFLoader();
-
 loader.load(
   BACKGROUND_FILE,
-  gltf => { 
+  gltf => {
     log('✓ Hospital room loaded!');
-    const hospital = gltf.scene;
-    hospital.scale.set(1, 1, 1);
-    hospital.position.set(0, 0, 0);
-    scene.add(hospital);
+    scene.add(gltf.scene);
     setTimeout(() => startExperience(), 500);
   },
   xhr => {
@@ -121,45 +102,27 @@ loader.load(
       log(`Loading hospital: ${percent}% (${mb} MB)`);
     }
   },
-  error => { 
-    log('✗ Hospital room failed. Using fallback...');
-    console.error('Background error:', error);
-    alert(`Could not load background.glb\n\nMake sure the file is in the same folder as index.html!`);
-    createFallbackRoom(); 
+  error => {
+    log('Using fallback room...');
+    console.error(error);
+    createFallbackRoom();
     setTimeout(() => startExperience(), 500);
   }
 );
 
 function createFallbackRoom() {
-  const floor = new THREE.Mesh(
-    new THREE.CircleGeometry(15, 64), 
-    new THREE.MeshStandardMaterial({color:0xd0d0d0, roughness:0.9})
-  );
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(15, 64), new THREE.MeshStandardMaterial({color:0xd0d0d0}));
   floor.rotation.x = -Math.PI/2;
   scene.add(floor);
-
-  const walls = new THREE.Mesh(
-    new THREE.CylinderGeometry(15, 15, 6, 64, 1, true), 
-    new THREE.MeshStandardMaterial({color:0xe0f2f7, side:THREE.BackSide, roughness:0.9})
-  );
+  const walls = new THREE.Mesh(new THREE.CylinderGeometry(15, 15, 6, 64, 1, true), new THREE.MeshStandardMaterial({color:0xe0f2f7, side:THREE.BackSide}));
   walls.position.y = 3;
   scene.add(walls);
-
-  const ceiling = new THREE.Mesh(
-    new THREE.CircleGeometry(15, 64),
-    new THREE.MeshStandardMaterial({color:0xffffff, side:THREE.BackSide})
-  );
-  ceiling.rotation.x = Math.PI/2;
-  ceiling.position.y = 6;
-  scene.add(ceiling);
 }
 
 function startExperience() {
-  log('Starting quiz...');
   document.getElementById('loading').style.display = 'none';
   document.getElementById('ui').style.display = 'block';
   document.getElementById('vr').style.display = 'block';
-  
   generateQuestions();
   loadItems();
   updateQuestion();
@@ -168,28 +131,25 @@ function startExperience() {
 
 function generateQuestions() {
   const shuffled = [...vocab].sort(() => Math.random() - 0.5);
-  questions = shuffled.map(item => {
-    const useNamePrompt = Math.random() > 0.5;
-    return {
-      prompt: useNamePrompt ? `Find the ${item.name}` : `Find: ${item.uses}`,
-      correctAnswer: item.name,
-      item: item
-    };
-  });
+  questions = shuffled.map(item => ({
+    prompt: Math.random() > 0.5 ? `Find the ${item.name}` : `Find: ${item.uses}`,
+    correctAnswer: item.name,
+    item: item
+  }));
 }
 
 function loadItems() {
   const radius = 3.5;
   const angleStep = (Math.PI * 2) / vocab.length;
-  
+
   questions.forEach((question, i) => {
     const angle = i * angleStep;
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius;
     const y = 1.2 + (Math.random() * 0.4);
-    
     const itemData = question.item;
-    const modelPath = `./${itemData.file}`; // Just ./filename.glb
+
+    const modelPath = `https://cdn.jsdelivr.net/gh/electivaiamf-droid/Nursing-quiz@main/${itemData.file}`;
 
     loader.load(
       modelPath,
@@ -202,23 +162,12 @@ function loadItems() {
         obj.lookAt(camera.position);
         scene.add(obj);
         items.push(obj);
-        console.log(`✓ Loaded: ${itemData.name}`);
       },
       undefined,
-      error => {
-        console.warn(`✗ Failed: ${itemData.name} at ${modelPath}`);
-        console.error(error);
-        
-        // Fallback cube
+      () => {
         const cube = new THREE.Mesh(
           new THREE.BoxGeometry(0.4, 0.4, 0.4),
-          new THREE.MeshStandardMaterial({
-            color: itemData.color,
-            emissive: itemData.color,
-            emissiveIntensity: 0.3,
-            metalness: 0.2,
-            roughness: 0.6
-          })
+          new THREE.MeshStandardMaterial({color: itemData.color, emissive: itemData.color, emissiveIntensity: 0.3})
         );
         cube.position.set(x, y, z);
         cube.userData.name = itemData.name;
@@ -241,20 +190,15 @@ function answer(obj) {
   busy = true;
   const correct = obj.userData.name === questions[q].correctAnswer;
   if (correct) score++;
-
   const fb = document.getElementById('fb');
   fb.className = correct ? 'correct' : 'incorrect';
-  fb.innerHTML = correct 
-    ? `✓ Correct!<br>${obj.userData.name}` 
+  fb.innerHTML = correct
+    ? `✓ Correct!<br>${obj.userData.name}`
     : `✗ Incorrect<br>You selected: ${obj.userData.name}<br>Correct: ${questions[q].correctAnswer}`;
   fb.style.display = 'block';
+  if (correct) speak(`Correct! ${obj.userData.name}. ${obj.userData.uses}`);
+  else speak(`Incorrect. That is ${obj.userData.name}. The correct answer was ${questions[q].correctAnswer}`);
 
-  if (correct) {
-    speak(`Correct! ${obj.userData.name}. ${obj.userData.uses}`);
-  } else {
-    speak(`Incorrect. That is ${obj.userData.name}. The correct answer was ${questions[q].correctAnswer}`);
-  }
-  
   setTimeout(() => fb.style.display = 'none', 2800);
   setTimeout(() => { q++; updateQuestion(); busy = false; }, 3000);
 }
@@ -262,15 +206,9 @@ function answer(obj) {
 function showCompletion() {
   const fb = document.getElementById('fb');
   fb.className = 'correct';
-  fb.innerHTML = `🎉 Quiz Complete!<br>Score: ${score}/${questions.length}`;
+  fb.innerHTML = `Quiz Complete!<br>Score: ${score}/${questions.length}`;
   fb.style.display = 'block';
-  fb.style.fontSize = '48px';
   speak(`Quiz complete! You scored ${score} out of ${questions.length}`);
-  setTimeout(() => { 
-    if (confirm(`You scored ${score}/${questions.length}!\n\nPlay again?`)) {
-      location.reload();
-    }
-  }, 3000);
 }
 
 function speak(text) {
@@ -278,15 +216,11 @@ function speak(text) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 1;
     window.speechSynthesis.speak(utterance);
   }
 }
 
-// VR-style mouse controls (no dragging!)
 let mouseX = 0, mouseY = 0, targetRotationY = 0, targetRotationX = 0;
-
 document.addEventListener('mousemove', e => {
   mouseX = (e.clientX / innerWidth) * 2 - 1;
   mouseY = (e.clientY / innerHeight) * 2 - 1;
@@ -302,40 +236,33 @@ function updateCamera() {
 
 function animate() {
   updateCamera();
-  
-  // Rotate items for visibility
   items.forEach(obj => obj.rotation.y += 0.005);
 
-  // Gaze detection
   if (!busy) {
     raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
     const hits = raycaster.intersectObjects(items, true);
-    
     if (hits.length) {
       let obj = hits[0].object;
       while (obj && !obj.userData?.name) obj = obj.parent;
-      
       if (obj?.userData?.name) {
-        if (gazed !== obj) { 
-          gazed = obj; 
-          gazeTime = Date.now(); 
-          document.getElementById('prog').style.display = 'block'; 
-        } else if (Date.now() - gazeTime > 2000) { 
-          document.getElementById('prog').style.display = 'none'; 
-          answer(obj); 
-          gazed = null; 
+        if (gazed !== obj) {
+          gazed = obj;
+          gazeTime = Date.now();
+          document.getElementById('prog').style.display = 'block';
+        } else if (Date.now() - gazeTime > 2000) {
+          document.getElementById('prog').style.display = 'none';
+          answer(obj);
+          gazed = null;
         }
       }
-    } else { 
-      gazed = null; 
-      document.getElementById('prog').style.display = 'none'; 
+    } else {
+      gazed = null;
+      document.getElementById('prog').style.display = 'none';
     }
   }
-  
   renderer.render(scene, camera);
 }
 
-// Click support
 document.addEventListener('click', () => {
   if (busy) return;
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -347,23 +274,14 @@ document.addEventListener('click', () => {
   }
 });
 
-// VR button
 document.getElementById('vr').onclick = () => {
   if ('xr' in navigator) {
-    navigator.xr.requestSession('immersive-vr', { 
-      optionalFeatures: ['local-floor', 'bounded-floor'] 
-    })
+    navigator.xr.requestSession('immersive-vr', {optionalFeatures: ['local-floor']})
     .then(session => renderer.xr.setSession(session))
-    .catch(err => { 
-      alert('Could not start VR.\n\nMake sure:\n- You\'re on HTTPS\n- VR device is connected\n- WebXR is enabled'); 
-      console.error(err); 
-    });
-  } else {
-    alert('WebXR not supported.\n\nTry Chrome/Edge on Android or Oculus Browser on Quest.');
+    .catch(() => alert('VR not available right now – try on Quest or Chrome Android'));
   }
 };
 
-// Window resize
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
