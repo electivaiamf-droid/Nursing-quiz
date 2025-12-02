@@ -45,12 +45,12 @@
 <button id="vr">Enter VR Mode</button>
 
 <script>
-// ============= SIMPLE PATH CONFIGURATION =============
-// All models are .glb files directly in the Models/ folder!
+// ============= ALL FILES IN ROOT (NO FOLDERS!) =============
+// Everything is in the same folder as index.html
 
-const BACKGROUND_FILE = "./Models/background.glb";
+const BACKGROUND_FILE = "./background.glb";
 
-// Medical supply items - just the filenames!
+// Medical supply items - all in root folder!
 const vocab = [
   {name:"Adhesive Bandage",     file:"bandage.glb",       color:0xF5DEB3, uses:"A small bandage to cover minor cuts or wounds"},
   {name:"Hand Sanitizer",       file:"sanitizer.glb",     color:0x87CEEB, uses:"A liquid used to disinfect hands"},
@@ -63,7 +63,7 @@ const vocab = [
   {name:"Tweezers",             file:"tweezers.glb",      color:0xB0B0B0, uses:"A tool for picking up small objects"},
   {name:"Thermometer",          file:"thermometer.glb",   color:0xFF6B6B, uses:"A device used to measure body temperature"}
 ];
-// ====================================================
+// ==========================================================
 
 let q=0, score=0, busy=false, gazed=null, gazeTime=0;
 let scene, camera, renderer, raycaster = new THREE.Raycaster();
@@ -117,12 +117,14 @@ loader.load(
   xhr => {
     if (xhr.lengthComputable) {
       const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
-      log(`Loading hospital: ${percent}%`);
+      const mb = (xhr.loaded / 1024 / 1024).toFixed(1);
+      log(`Loading hospital: ${percent}% (${mb} MB)`);
     }
   },
   error => { 
     log('✗ Hospital room failed. Using fallback...');
     console.error('Background error:', error);
+    alert(`Could not load background.glb\n\nMake sure the file is in the same folder as index.html!`);
     createFallbackRoom(); 
     setTimeout(() => startExperience(), 500);
   }
@@ -187,7 +189,7 @@ function loadItems() {
     const y = 1.2 + (Math.random() * 0.4);
     
     const itemData = question.item;
-    const modelPath = `./Models/${itemData.file}`;
+    const modelPath = `./${itemData.file}`; // Just ./filename.glb
 
     loader.load(
       modelPath,
