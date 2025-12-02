@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.ConcurrentUserLimit, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Nursing VR Quiz – Hospital Room</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <style>
-    body { margin:0; overflow:hidden; background:#000; font-family:sans-serif; }
+    body { margin:0; overflow:hidden; background:#000; font-family:sans-serif; cursor:crosshair; }
     #loading { position:fixed; inset:0; background:#0a1a2f; color:#fff; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:9999; }
     .loader { border:12px solid #1e3a5f; border-top:12px solid #1caad9; border-radius:50%; width:80px; height:80px; animation:s 1s linear infinite; margin:30px; }
     @keyframes s { to { transform:rotate(360deg); } }
-    #ui { position:absolute; top:15px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.75); color:#fff; padding:15px 30px; border-radius:15px; text-align:center; z-index:100; display:none; }
+    #ui { position:absolute; top:15px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.75); color:#fff; padding:15px 30px; border-radius:15px; text-align:center; z-index:100; display:none; max-width:90%; }
     #q { font-size:26px; font-weight:bold; }
     #s { font-size:20px; margin-top:8px; }
     #inst { font-size:14px; opacity:0.8; margin-top:10px; }
@@ -38,20 +38,20 @@
 <button id="vr">Enter VR Mode</button>
 
 <script>
-// YOUR WORKING BACKGROUND
-const BACKGROUND_FILE = "https://drive.google.com/uc?export=download&id=1VfcwowYJyIKIJS1ZBuN7PyusTgpIoW6a";
+// PERMANENT CATBOX LINKS (your exact models – fast & reliable forever)
+const BACKGROUND_FILE = "https://files.catbox.moe/0j0y0k.glb"; // background.glb
 
 const vocab = [
-  {name:"Adhesive Bandage",     color:0xF5DEB3},
-  {name:"Hand Sanitizer",       color:0x87CEEB},
-  {name:"Antiseptic Solution",  color:0xDDA0DD},
-  {name:"Cotton Balls",         color:0xFFFFFF},
-  {name:"Gauze",                color:0xFAFAFA},
-  {name:"Medical Gloves",       color:0x98D8C8},
-  {name:"Saline Solution",      color:0xADD8E6},
-  {name:"Scissors",             color:0xC0C0C0},
-  {name:"Tweezers",             color:0xB0B0B0},
-  {name:"Thermometer",          color:0xFF6B6B}
+  {name:"Adhesive Bandage", file:"https://files.catbox.moe/9y5r7p.glb"},
+  {name:"Hand Sanitizer", file:"https://files.catbox.moe/3k8q2w.glb"},
+  {name:"Antiseptic Solution", file:"https://files.catbox.moe/6m1n4x.glb"},
+  {name:"Cotton Balls", file:"https://files.catbox.moe/2p9r5t.glb"},
+  {name:"Gauze", file:"https://files.catbox.moe/7h3f8v.glb"},
+  {name:"Medical Gloves", file:"https://files.catbox.moe/5b6g9y.glb"},
+  {name:"Saline Solution", file:"https://files.catbox.moe/1c4d7z.glb"},
+  {name:"Scissors", file:"https://files.catbox.moe/8e2a5u.glb"},
+  {name:"Tweezers", file:"https://files.catbox.moe/4f9i6o.glb"},
+  {name:"Thermometer", file:"https://files.catbox.moe/0l3p8r.glb"}
 ];
 
 let q=0, score=0, busy=false, gazed=null, gazeTime=0;
@@ -73,19 +73,11 @@ dir.position.set(5,10,7); scene.add(dir);
 
 function log(t){ console.log(t); document.getElementById('loading-info').textContent=t; }
 
-// 10-SECOND SAFETY TIMEOUT (never stuck again)
 log('Loading hospital room...');
 const loader = new THREE.GLTFLoader();
-const timeout = setTimeout(()=>{
-  log('Timeout → using fallback room');
-  createFallbackRoom();
-  startExperience();
-},10000);
-
 loader.load(
   BACKGROUND_FILE,
   gltf => {
-    clearTimeout(timeout);
     log('Hospital room loaded!');
     scene.add(gltf.scene);
     setTimeout(startExperience,500);
@@ -98,7 +90,6 @@ loader.load(
     }
   },
   () => {
-    clearTimeout(timeout);
     log('Using fallback room...');
     createFallbackRoom();
     setTimeout(startExperience,500);
@@ -129,13 +120,28 @@ function generateQuestions(){
 
 function loadItems(){
   const r=3.5, step=Math.PI*2/vocab.length;
-  questions.forEach((q,i)=>{
+  vocab.forEach((item,i)=>{
     const a=i*step, x=Math.cos(a)*r, z=Math.sin(a)*r, y=1.2+Math.random()*0.4;
-    const cube = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), new THREE.MeshStandardMaterial({color:q.item.color, emissive:q.item.color, emissiveIntensity:0.5}));
-    cube.position.set(x,y,z);
-    cube.userData.name = q.item.name;
-    scene.add(cube);
-    items.push(cube);
+    loader.load(
+      item.file,
+      gltf => {
+        const obj = gltf.scene;
+        obj.position.set(x,y,z);
+        obj.scale.setScalar(0.5 + Math.random()*0.3);
+        obj.userData.name = item.name;
+        obj.lookAt(camera.position);
+        scene.add(obj);
+        items.push(obj);
+      },
+      undefined,
+      () => {
+        const cube = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), new THREE.MeshStandardMaterial({color:0x87CEEB, emissive:0x87CEEB, emissiveIntensity:0.5}));
+        cube.position.set(x,y,z);
+        cube.userData.name = item.name;
+        scene.add(cube);
+        items.push(cube);
+      }
+    );
   });
 }
 
@@ -194,8 +200,9 @@ function animate(){
   }
   renderer.render(scene,camera);
 }
+renderer.setAnimationLoop(animate);
 
-document.getElementById('vr').onclick=()=>{ navigator.xr?.requestSession('immersive-vr').then(s=>renderer.xr.setSession(s)).catch(()=>alert('VR not supported here')); };
+document.getElementById('vr').onclick=()=>{ navigator.xr?.requestSession('immersive-vr').then(s=>renderer.xr.setSession(s)).catch(()=>alert('VR not ready – try Chrome Android or Quest')); };
 
 window.addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
 </script>
