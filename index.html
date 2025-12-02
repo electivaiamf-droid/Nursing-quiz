@@ -42,7 +42,7 @@
 <button id="vr">Enter VR Mode</button>
 <script>
 // ===== FIXED CDN PATHS – WILL WORK EVEN IF GLB FILES ARE BIG =====
-const BACKGROUND_FILE = "https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/models/background.glb";
+const BACKGROUND_FILE = "https://cdn.jsdelivr.net/gh/electivaiamf-droid/Nursing-quiz@v.1/background.glb";
 
 const vocab = [
   {name:"Adhesive Bandage", file:"bandage.glb", color:0xF5DEB3, uses:"A small bandage to cover minor cuts or wounds"},
@@ -149,7 +149,7 @@ function loadItems() {
     const y = 1.2 + (Math.random() * 0.4);
     const itemData = question.item;
 
-    const modelPath = `https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/models/${itemData.file}`;
+    const modelPath = `https://cdn.jsdelivr.net/gh/electivaiamf-droid/Nursing-quiz@v.1/${itemData.file}`;
 
     loader.load(
       modelPath,
@@ -290,4 +290,5 @@ window.addEventListener('resize', () => {
 </script>
 </body>
 </html>
+
 
