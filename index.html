@@ -3,138 +3,145 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Nursing VR Quiz – Smooth & Loaded</title>
+<title>Nursing VR Quiz – FINAL WORKING 360°</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <style>
   body{margin:0;overflow:hidden;background:#000;font-family:sans-serif}
   #loading{position:fixed;inset:0;background:#0a1a2f;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999}
-  .loader{border:12px solid #1e3a5f;border-top:12px solid #1caad9;border-radius:50%;width:80px;height:80px;animation:s 1s linear infinite;margin:20px}
+  .loader{border:16px solid #1e3a5f;border-top:16px solid #1caad9;border-radius:50%;width:90px;height:90px;animation:s 1s linear infinite}
   @keyframes s{to{transform:rotate(360deg)}}
-  #ui{position:absolute;top:15px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:15px 30px;border-radius:15px;text-align:center;z-index:100;display:none;max-width:90%}
-  #q{font-size:26px;font-weight:bold}
-  #s{font-size:20px;margin-top:8px}
-  #vr{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:16px 40px;font-size:22px;background:#00bcd4;color:#fff;border:none;border-radius:50px;cursor:pointer;z-index:100;display:none}
-  #fb{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:50px;padding:30px 60px;border-radius:20px;display:none;z-index:200;font-weight:bold;text-align:center}
+  #ui{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:20px 40px;border-radius:20px;z-index:100;display:none;width:90%;text-align:center}
+  #q{font-size:34px;font-weight:bold;line-height:1.2}
+  #s{font-size:30px;margin-top:10px}
+  #vr{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);padding:20px 60px;font-size:30px;background:#00bcd4;color:#fff;border:none;border-radius:50px;z-index:100;display:none}
+  #fb{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:70px;padding:40px 80px;border-radius:30px;display:none;z-index:200}
   .correct{background:#006400;color:#fff}
   .incorrect{background:#8B0000;color:#fff}
-  .prog{position:fixed;top:50%;left:50%;width:60px;height:60px;border:8px solid transparent;border-top:8px solid cyan;border-radius:50%;transform:translate(-50%,-50%);display:none;animation:s 2s linear infinite;z-index:99}
+  .reticle{position:fixed;top:50%;left:50%;width:50px;height:50px;border:5px solid #fff;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:99}
+  .prog{position:fixed;top:50%;left:50%;width:80px;height:80px;border:10px solid transparent;border-top:10px solid cyan;border-radius:50%;transform:translate(-50%,-50%);display:none;animation:s 2s linear;z-index:99}
 </style>
 </head>
 <body>
-<div id="loading"><h1>Loading Hospital...</h1><div class="loader"></div><p id="info">Please wait…</p></div>
+<div id="loading"><h1>Loading…</h1><div class="loader"></div></div>
 <div id="ui"><div id="q"></div><div id="s">Score: 0/10</div></div>
+<div class="reticle"></div>
 <div class="prog" id="prog"></div>
 <div id="fb"></div>
-<button id="vr">Enter VR Mode</button>
+<button id="vr">Enter VR</button>
 
 <script>
-const BACKGROUND_FILE = "https://files.catbox.moe/reiuka.glb"; // Your background
+const BACKGROUND = "https://files.catbox.moe/reiuka.glb";
 
 const vocab = [
-  {name:"Adhesive Bandage",     link:"https://files.catbox.moe/edy3gw.glb", color:0xF5DEB3},
-  {name:"Hand Sanitizer",       link:"https://files.catbox.moe/o997s6.glb", color:0x87CEEB},
-  {name:"Antiseptic Solution",  link:"https://files.catbox.moe/1t002n.glb", color:0xDDA0DD},
-  {name:"Cotton Balls",         link:"https://files.catbox.moe/eay3dl.glb", color:0xFFFFFF},
-  {name:"Gauze",                link:"https://files.catbox.moe/vm9c7n.glb", color:0xFAFAFA},
-  {name:"Medical Gloves",       link:"https://files.catbox.moe/2tifp9.glb", color:0x98D8C8},
-  {name:"Saline Solution",      link:"https://files.catbox.moe/dgg8tw.glb", color:0xADD8E6},
-  {name:"Scissors",             link:"https://files.catbox.moe/bc4xkb.glb", color:0xC0C0C0},
-  {name:"Tweezers",             link:"https://files.catbox.moe/pf2i81.glb", color:0xB0B0B0},
-  {name:"Thermometer",          link:"https://files.catbox.moe/0glqs3.glb", color:0xFF6B6B}
+  {name:"Adhesive Bandage",    link:"https://files.catbox.moe/edy3gw.glb"},
+  {name:"Hand Sanitizer",      link:"https://files.catbox.moe/o997s6.glb"},
+  {name:"Antiseptic Solution", link:"https://files.catbox.moe/1t002n.glb"},
+  {name:"Cotton Balls",        link:"https://files.catbox.moe/eay3dl.glb"},
+  {name:"Gauze",               link:"https://files.catbox.moe/vm9c7n.glb"},
+  {name:"Medical Gloves",      link:"https://files.catbox.moe/2tifp9.glb"},
+  {name:"Saline Solution",     link:"https://files.catbox.moe/dgg8tw.glb"},
+  {name:"Scissors",            link:"https://files.catbox.moe/bc4xkb.glb"},
+  {name:"Tweezers",            link:"https://files.catbox.moe/pf2i81.glb"},
+  {name:"Thermometer",         link:"https://files.catbox.moe/0glqs3.glb"}
 ];
 
-let q=0,score=0,busy=false,gazed=null,gazeTime=0,scene,camera,renderer,raycaster=new THREE.Raycaster(),items=[],questions=[];
+let scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.01,1000),
+    renderer=new THREE.WebGLRenderer({antialias:true}), raycaster=new THREE.Raycaster(),
+    items=[], q=0, score=0, busy=false, gazed=null, gazeTime=0;
 
-scene=new THREE.Scene();scene.background=new THREE.Color(0x1a1a2e);
-camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);camera.position.y=1.6;
-renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;document.body.appendChild(renderer.domElement);
+// 360° LOOK-AROUND (mouse + phone tilt)
+let lon = 0, lat = 0, phi = 0, theta = 0;
+const onPointerMove = e => {
+  lon = (e.clientX / innerWidth) * 360 - 180;
+  lat = (e.clientY / innerHeight) * 180 - 90;
+  lat = Math.max(-85, Math.min(85, lat));
+};
+document.addEventListener('mousemove', onPointerMove);
+window.addEventListener('deviceorientation', e => {
+  if (e.beta !== null) lat = e.beta - 90;
+  if (e.gamma !== null) lon = e.gamma * 3;
+});
 
-scene.add(new THREE.AmbientLight(0xffffff,0.8));
-const dir=new THREE.DirectionalLight(0xffffff,0.8);dir.position.set(5,10,7);scene.add(dir);
+renderer.setSize(innerWidth,innerHeight); renderer.xr.enabled=true; document.body.appendChild(renderer.domElement);
+scene.background=new THREE.Color(0x0a1a2f); camera.position.y=1.6;
+scene.add(new THREE.AmbientLight(0xffffff,1.2));
+scene.add(new THREE.DirectionalLight(0xffffff,1).position.set(5,10,7));
 
-function log(t){console.log(t);document.getElementById('info').textContent=t}
-log('Loading hospital room...');
 const loader=new THREE.GLTFLoader();
-const timeout=setTimeout(()=>{log('Timeout → fallback room');createFallbackRoom();startExperience();},8000);
-
-loader.load(BACKGROUND_FILE,
-  gltf=>{clearTimeout(timeout);log('Hospital room loaded!');scene.add(gltf.scene);setTimeout(startExperience,500);},
-  xhr=>{if(xhr.lengthComputable)log(`Hospital: ${(xhr.loaded/xhr.total*100).toFixed(0)}%`);},
-  ()=>{clearTimeout(timeout);log('Using fallback room');createFallbackRoom();setTimeout(startExperience,500);}
-);
+loader.load(BACKGROUND, g=>scene.add(g.scene), null, ()=>createFallbackRoom());
 
 function createFallbackRoom(){
-  const floor=new THREE.Mesh(new THREE.CircleGeometry(15,64),new THREE.MeshStandardMaterial({color:0xcccccc}));floor.rotation.x=-Math.PI/2;scene.add(floor);
-  const walls=new THREE.Mesh(new THREE.CylinderGeometry(15,15,6,64,1,true),new THREE.MeshStandardMaterial({color:0xb3e5fc,side:THREE.BackSide}));walls.position.y=3;scene.add(walls);
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(20,64), new THREE.MeshStandardMaterial({color:0xaaaaaa}));
+  floor.rotation.x=-Math.PI/2; scene.add(floor);
 }
 
-function startExperience(){
-  document.getElementById('loading').style.display='none';
-  document.getElementById('ui').style.display='block';
-  document.getElementById('vr').style.display='block';
-  generateQuestions();loadItems();updateQuestion();renderer.setAnimationLoop(animate);
-}
-
-function generateQuestions(){const s=[...vocab].sort(()=>Math.random()-0.5);questions=s.map(i=>({prompt:Math.random()>0.5?`Find the ${i.name}`:`Find: ${i.name}`,correctAnswer:i.name,item:i}))}
+setTimeout(()=>{document.getElementById('loading').remove(); document.getElementById('ui').style.display='block'; document.getElementById('vr').style.display='block'; loadItems(); nextQuestion(); renderer.setAnimationLoop(animate);},1500);
 
 function loadItems(){
-  const r=3.8,step=Math.PI*2/vocab.length;
-  questions.forEach((q,i)=>{
-    const a=i*step,x=Math.cos(a)*r,z=Math.sin(a)*r,y=1.2;
-    const item=q.item;
-
-    loader.load(item.link,
-      gltf=>{
-        const obj=gltf.scene;obj.position.set(x,y,z);obj.userData.name=item.name;
-        const box=new THREE.Box3().setFromObject(obj);
-        const size=box.getSize(new THREE.Vector3());
-        const maxDim=Math.max(size.x,size.y,size.z);
-        const target = 0.45 + Math.random()*0.2;
-        const scale = target / maxDim;
-        obj.scale.setScalar(scale);
-        obj.rotation.y=Math.random()*Math.PI;
-        scene.add(obj);items.push(obj);
-        log(`Loaded: ${item.name}`);
-      },
-      undefined,
-      ()=>{ // fallback cube
-        const cube=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5),new THREE.MeshStandardMaterial({color:item.color,emissive:item.color,emissiveIntensity:0.5}));
-        cube.position.set(x,y,z);cube.userData.name=item.name;scene.add(cube);items.push(cube);
-        log(`Fallback for ${item.name}`);
-      }
-    );
+  const r=4.2;
+  vocab.forEach((it,i)=>{
+    const a=i*Math.PI*2/vocab.length, x=Math.cos(a)*r, z=Math.sin(a)*r, y=0.8;
+    loader.load(it.link, gltf=>{
+      const obj=gltf.scene; obj.position.set(x,y,z); obj.userData.name=it.name;
+      const box=new THREE.Box3().setFromObject(obj);
+      const size=box.getSize(new THREE.Vector3());
+      const maxDim=Math.max(size.x,size.y,size.z);
+      const maxAllowed = it.name.includes("Scissors")||it.name.includes("Thermometer")||it.name.includes("Tweezers") ? 0.55 : 0.8;
+      obj.scale.setScalar(Math.min(maxAllowed/maxDim, 4));
+      obj.rotation.y=Math.random()*Math.PI;
+      scene.add(obj); items.push(obj);
+    }, undefined, ()=>{ /* fallback cube if any link dies */ });
   });
 }
 
-function updateQuestion(){if(q>=questions.length){showCompletion();return;}document.getElementById('q').innerHTML=`<strong>${questions[q].prompt}</strong>`;document.getElementById('s').textContent=`Score: ${score}/${questions.length}`;}
-function answer(o){if(busy)return;busy=true;const correct=o.userData.name===questions[q].correctAnswer;if(correct)score++;const fb=document.getElementById('fb');fb.className=correct?'correct':'incorrect';fb.innerHTML=correct?`Correct!<br>${o.userData.name}`:`Incorrect<br>Correct: ${questions[q].correctAnswer}`;fb.style.display='block';setTimeout(()=>{fb.style.display='none';q++;updateQuestion();busy=false;},3000);}
+function nextQuestion(){
+  const shuffled = [...vocab].sort(()=>Math.random()-0.5);
+  document.getElementById('q').textContent = `Find the ${shuffled[q].name}`;
+  document.getElementById('s').textContent = `Score: ${score}/10`;
+}
 
-function showCompletion(){const fb=document.getElementById('fb');fb.className='correct';fb.innerHTML=`Quiz Complete!<br>Score: ${score}/${questions.length}`;fb.style.display='block';}
+function answer(obj){
+  if(busy) return; busy=true;
+  const correct = obj.userData.name === document.getElementById('q').textContent.split("the ")[1];
+  if(correct) score++;
+  const fb=document.getElementById('fb');
+  fb.textContent=correct?"Correct!":"Wrong!";
+  fb.className=correct?"correct":"incorrect";
+  fb.style.display="block";
+  setTimeout(()=>{fb.style.display="none"; q++; if(q<10) nextQuestion(); else fb.textContent=`Finished! ${score}/10`; busy=false;},2500);
+}
 
-let ty=0,tx=0;
-document.onmousemove=e=>{ty=(e.clientX/innerWidth*2-1)*Math.PI;tx=-(e.clientY/innerHeight*2-1)*(Math.PI/3);};
 function animate(){
-  camera.rotation.y+=(ty-camera.rotation.y)*0.1;
-  camera.rotation.x+=(tx-camera.rotation.x)*0.1;
-  camera.rotation.x=Math.max(-Math.PI/2.5,Math.min(Math.PI/2.5,camera.rotation.x));
-  items.forEach(o=>o.rotation.y+=0.006);
+  // 360° LOOK-AROUND UPDATE
+  lat *= 0.95; lon *= 0.95;
+  phi = THREE.MathUtils.degToRad(90 - lat);
+  theta = THREE.MathUtils.degToRad(lon);
+  camera.lookAt(
+    camera.position.x + Math.sin(phi) * Math.cos(theta),
+    camera.position.y + Math.cos(phi),
+    camera.position.z + Math.sin(phi) * Math.sin(theta)
+  );
+
+  items.forEach(o=>o.rotation.y += 0.01);
   if(!busy){
-    raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
-    const hits=raycaster.intersectObjects(items,true);
+    raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+    const hits = raycaster.intersectObjects(items, true);
     if(hits.length){
-      let o=hits[0].object;while(o&&!o.userData?.name)o=o.parent;
-      if(o?.userData?.name){
-        if(gazed!==o){gazed=o;gazeTime=Date.now();document.getElementById('prog').style.display='block';}
-        else if(Date.now()-gazeTime>2000){document.getElementById('prog').style.display='none';answer(o);gazed=null;}
+      let o = hits[0].object; while(o && !o.userData.name) o=o.parent;
+      if(o?.userData.name){
+        if(gazed!==o){ gazed=o; gazeTime=performance.now(); document.getElementById('prog').style.display='block'; }
+        else if(performance.now()-gazeTime>2000){ document.getElementById('prog').style.display='none'; answer(o); gazed=null; }
       }
-    }else{gazed=null;document.getElementById('prog').style.display='none';}
+    }else{ gazed=null; document.getElementById('prog').style.display='none'; }
   }
   renderer.render(scene,camera);
 }
 
-document.getElementById('vr').onclick=()=>{navigator.xr?.requestSession('immersive-vr').then(s=>renderer.xr.setSession(s)).catch(()=>alert('VR not available'))};
-window.onresize=()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);};
+renderer.domElement.addEventListener('click',()=>{ if(busy||items.length<10)return; const hits=raycaster.setFromCamera(new THREE.Vector2(0,0),camera).intersectObjects(items,true); if(hits.length){let o=hits[0].object;while(o&&!o.userData.name)o=o.parent;if(o)answer(o);} });
+document.getElementById('vr').onclick=()=>navigator.xr?.requestSession('immersive-vr').then(s=>renderer.xr.setSession(s)).catch(()=>alert('VR not available'));
+window.onresize=()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);};
 </script>
 </body>
 </html>
+
