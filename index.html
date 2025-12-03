@@ -323,12 +323,19 @@
 
     // Generate questions
     function generateQuestions() {
-      const shuffled = [...vocab].sort(() => Math.random() - 0.5);
-      questions = shuffled.map(item => ({
-        prompt: Math.random() > 0.5 ? `Find the ${item.name}` : `Find: ${item.uses}`,
-        correctAnswer: item.name,
-        item: item
-      }));
+      // DON'T shuffle - keep original order so items match their positions!
+      questions = vocab.map(item => {
+        // Randomly choose question type: name or use description
+        const useNamePrompt = Math.random() > 0.5;
+        return {
+          prompt: useNamePrompt ? `Find the ${item.name}` : `Find: ${item.uses}`,
+          correctAnswer: item.name,
+          item: item
+        };
+      });
+      
+      // Shuffle the ORDER of questions asked, not the items themselves
+      questions = questions.sort(() => Math.random() - 0.5);
     }
 
     // Load items
@@ -336,13 +343,12 @@
       const radius = 3; // Closer to player
       const angleStep = (Math.PI * 2) / vocab.length;
       
-      questions.forEach((question, i) => {
+      // Load items in the SAME order as vocab (no shuffling here!)
+      vocab.forEach((itemData, i) => {
         const angle = i * angleStep;
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
         const y = 1.5; // Higher up, away from floor objects
-        
-        const itemData = question.item;
         
         loader.load(itemData.link, 
           gltf => {
@@ -371,7 +377,7 @@
             
             scene.add(obj);
             items.push(obj);
-            console.log(`✓ Loaded: ${itemData.name} at (${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`);
+            console.log(`✓ Loaded: ${itemData.name} at position ${i} (${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`);
           },
           undefined,
           err => {
