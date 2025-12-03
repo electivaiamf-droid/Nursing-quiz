@@ -3,27 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Nursing VR Quiz – Phone-Perfect</title>
+<title>Nursing VR Quiz – FINAL FIXED</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <style>
-  body{margin:0;overflow:hidden;background:#000}
-  #loading{position:fixed;inset:0;background:#0a1a2f;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;font-family:sans-serif}
+  body{margin:0;overflow:hidden;background:#000;font-family:sans-serif}
+  #loading{position:fixed;inset:0;background:#0a1a2f;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999}
   .loader{border:16px solid #1e3a5f;border-top:16px solid #1caad9;border-radius:50%;width:90px;height:90px;animation:s 1s linear infinite}
   @keyframes s{to{transform:rotate(360deg)}}
-  #ui{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:20px 30px;border-radius:20px;text-align:center;z-index:100;display:none;width:90%;font-family:sans-serif}
-  #q{font-size:32px;font-weight:bold;line-height:1.2}
-  #s{font-size:28px;margin-top:10px}
-  #vr{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);padding:20px 50px;font-size:28px;background:#00bcd4;color:#fff;border:none;border-radius:50px;z-index:100;display:none}
-  #fb{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:60px;padding:40px 80px;border-radius:30px;display:none;z-index:200;background:#006400;color:#fff;text-align:center}
-  .incorrect{background:#8B0000 !important}
-  .reticle{pointer-events:none;position:fixed;top:50%;left:50%;width:40px;height:40px;border:4px solid rgba(255,255,255,0.9);border-radius:50%;transform:translate(-50%,-50%);z-index:99}
-  .prog{pointer-events:none;position:fixed;top:50%;left:50%;width:70px;height:70px;border:8px solid transparent;border-top:8px solid cyan;border-radius:50%;transform:translate(-50%,-50%);display:none;animation:s 2s linear;z-index:99}
+  #ui{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#fff;padding:20px 40px;border-radius:20px;z-index:100;display:none;width:90%;text-align:center}
+  #q{font-size:34px;font-weight:bold;line-height:1.2}
+  #s{font-size:30px;margin-top:10px}
+  #vr{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);padding:20px 60px;font-size:30px;background:#00bcd4;color:#fff;border:none;border-radius:50px;z-index:100;display:none}
+  #fb{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:70px;padding:40px 80px;border-radius:30px;display:none;z-index:200;text-align:center}
+  .correct{background:#006400;color:#fff}
+  .incorrect{background:#8B0000;color:#fff}
+  .reticle{position:fixed;top:50%;left:50%;width:50px;height:50px;border:5px solid #fff;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:99;opacity:0.9}
+  .prog{position:fixed;top:50%;left:50%;width:80px;height:80px;border:10px solid transparent;border-top:10px solid cyan;border-radius:50%;transform:translate(-50%,-50%);display:none;animation:s 2s linear;z-index:99}
 </style>
 </head>
 <body>
-<div id="loading"><h1>Loading Hospital...</h1><div class="loader"></div></div>
-<div id="ui"><div id="q">Loading…</div><div id="s">Score: 0/10</div></div>
+<div id="loading"><h1>Loading…</h1><div class="loader"></div></div>
+<div id="ui"><div id="q"></div><div id="s">Score: 0/10</div></div>
 <div class="reticle"></div>
 <div class="prog" id="prog"></div>
 <div id="fb"></div>
@@ -33,96 +34,124 @@
 const BACKGROUND = "https://files.catbox.moe/reiuka.glb";
 
 const vocab = [
-  {name:"Adhesive Bandage",link:"https://files.catbox.moe/edy3gw.glb"},
-  {name:"Hand Sanitizer",link:"https://files.catbox.moe/o997s6.glb"},
-  {name:"Antiseptic Solution",link:"https://files.catbox.moe/1t002n.glb"},
-  {name:"Cotton Balls",link:"https://files.catbox.moe/eay3dl.glb"},
-  {name:"Gauze",link:"https://files.catbox.moe/vm9c7n.glb"},
-  {name:"Medical Gloves",link:"https://files.catbox.moe/2tifp9.glb"},
-  {name:"Saline Solution",link:"https://files.catbox.moe/dgg8tw.glb"},
-  {name:"Scissors",link:"https://files.catbox.moe/bc4xkb.glb"},
-  {name:"Tweezers",link:"https://files.catbox.moe/pf2i81.glb"},
-  {name:"Thermometer",link:"https://files.catbox.moe/0glqs3.glb"}
+  {name:"Adhesive Bandage",    link:"https://files.catbox.moe/edy3gw.glb"},
+  {name:"Hand Sanitizer",      link:"https://files.catbox.moe/o997s6.glb"},
+  {name:"Antiseptic Solution", link:"https://files.catbox.moe/1t002n.glb"},
+  {name:"Cotton Balls",        link:"https://files.catbox.moe/eay3dl.glb"},
+  {name:"Gauze",               link:"https://files.catbox.moe/vm9c7n.glb"},
+  {name:"Medical Gloves",      link:"https://files.catbox.moe/2tifp9.glb"},
+  {name:"Saline Solution",     link:"https://files.catbox.moe/dgg8tw.glb"},
+  {name:"Scissors",            link:"https://files.catbox.moe/bc4xkb.glb"},
+  {name:"Tweezers",            link:"https://files.catbox.moe/pf2i81.glb"},
+  {name:"Thermometer",         link:"https://files.catbox.moe/0glqs3.glb"}
 ];
 
-let scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.05,1000), 
-    renderer=new THREE.WebGLRenderer({antialias:true}), items=[], q=0, score=0, busy=false, gazed=null;
+let scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.01,1000),
+    renderer=new THREE.WebGLRenderer({antialias:true}), raycaster=new THREE.Raycaster(),
+    items=[], questions=[], q=0, score=0, busy=false, gazed=null, gazeTime=0;
 
 renderer.setSize(innerWidth,innerHeight); renderer.xr.enabled=true; document.body.appendChild(renderer.domElement);
-scene.background=new THREE.Color(0x0a1a2f);
-camera.position.y=1.6;
+scene.background=new THREE.Color(0x0a1a2f); camera.position.y=1.6;
 scene.add(new THREE.AmbientLight(0xffffff,1.2));
 scene.add(new THREE.DirectionalLight(0xffffff,1).position.set(5,10,7));
 
 const loader=new THREE.GLTFLoader();
 loader.load(BACKGROUND, g=>scene.add(g.scene), null, ()=>scene.add(new THREE.GridHelper(20,20)));
 
+setTimeout(start,1200);
+
 function start(){
   document.getElementById('loading').remove();
   document.getElementById('ui').style.display='block';
   document.getElementById('vr').style.display='block';
-  vocab.forEach((it,i)=>{
-    const angle=i*Math.PI*2/vocab.length, x=Math.cos(angle)*4, z=Math.sin(angle)*4, y=1.3;
-    loader.load(it.link, gltf=>{
-      const obj=gltf.scene; obj.position.set(x,y,z); obj.userData.name=it.name;
-      const box=new THREE.Box3().setFromObject(obj);
-      const h=box.getSize(new THREE.Vector3()).y;
-      const scale=h<0.05?8:(h<0.3?3:(h<1?1.5:0.8));   // phone-friendly sizing
-      obj.scale.setScalar(scale);
-      obj.rotation.y=Math.random()*Math.PI;
-      scene.add(obj); items.push(obj);
-    });
-  });
+  loadAllItems();
   nextQuestion();
   renderer.setAnimationLoop(animate);
 }
 
+function loadAllItems(){
+  const r=4.2;
+  vocab.forEach((it,i)=>{
+    const a=i*Math.PI*2/vocab.length, x=Math.cos(a)*r, z=Math.sin(a)*r, y=1.35;
+    loader.load(it.link, gltf=>{
+      const obj=gltf.scene; obj.position.set(x,y,z); obj.userData.name=it.name;
+
+      // *** THE FINAL SIZE FIX ***
+      const box=new THREE.Box3().setFromObject(obj);
+      const size=box.getSize(new THREE.Vector3());
+      const maxDim=Math.max(size.x,size.y,size.z);
+
+      // Hard limits per object type (you can tweak these once and forget)
+      const maxAllowed = it.name.includes("Scissors")   ? 0.55 :
+                        it.name.includes("Thermometer") ? 0.60 :
+                        it.name.includes("Tweezers")    ? 0.50 :
+                        it.name.includes("Gloves")      ? 0.70 :
+                        it.name.includes("Bandage")     ? 0.40 : 0.80;
+
+      const scale = Math.min(maxAllowed / maxDim, 4); // never shrink tiny things too much
+      obj.scale.setScalar(scale);
+      obj.rotation.y = Math.random()*Math.PI;
+      scene.add(obj); items.push(obj);
+    }, undefined, ()=>{
+      // fallback cube
+      const cube=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), new THREE.MeshStandardMaterial({color:0x8888ff}));
+      cube.position.set(x,y,z); cube.userData.name=it.name; scene.add(cube); items.push(cube);
+    });
+  });
+}
+
 function nextQuestion(){
-  const ques=vocab.sort(()=>Math.random()-0.5);
-  questions=ques.map(v=>({prompt:`Find the ${v.name}`,correctAnswer:v.name}));
-  document.getElementById('q').textContent=questions[q].prompt;
-  document.getElementById('s').textContent=`Score: ${score}/10`;
+  questions = vocab.sort(()=>Math.random()-0.5).map(v=>({prompt:`Find the ${v.name}`, correctAnswer:v.name}));
+  document.getElementById('q').textContent = questions[q].prompt;
+  document.getElementById('s').textContent = `Score: ${score}/10`;
 }
 
 function answer(obj){
-  if(busy)return; busy=true;
-  const correct=obj.userData.name===questions[q].correctAnswer;
-  if(correct)score++;
-  document.getElementById('fb').textContent=correct?"Correct!":"Wrong!";
-  document.getElementById('fb').className=correct?"":"incorrect";
-  document.getElementById('fb').style.display='block';
-  setTimeout(()=>{document.getElementById('fb').style.display='none'; q++; if(q<10)nextQuestion(); else document.getElementById('fb').textContent=`Finished! ${score}/10`;},2500);
+  if(busy) return; busy=true;
+  const correct = obj.userData.name === questions[q].correctAnswer;
+  if(correct) score++;
+  const fb = document.getElementById('fb');
+  fb.textContent = correct ? "Correct!" : "Wrong!";
+  fb.className = correct ? "correct" : "incorrect";
+  fb.style.display = "block";
+  setTimeout(()=>{
+    fb.style.display = "none";
+    q++;
+    if(q<10) nextQuestion();
+    else { fb.textContent = `Finished! ${score}/10`; fb.style.display="block"; }
+    busy=false;
+  }, 2500);
 }
 
 function animate(){
-  items.forEach(o=>o.rotation.y+=0.01);
+  items.forEach(o=>o.rotation.y += 0.01);
   if(!busy){
-    const hits=raycaster.setFromCamera(new THREE.Vector2(0,0),camera).intersectObjects(items,true);
+    raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+    const hits = raycaster.intersectObjects(items, true);
     if(hits.length){
-      let o=hits[0].object; while(o&&!o.userData.name)o=o.parent;
+      let o = hits[0].object; while(o && !o.userData.name) o=o.parent;
       if(o?.userData.name){
-        if(gazed!==o){gazed=o; document.getElementById('prog').style.display='block';}
+        if(gazed!==o){ gazed=o; gazeTime=performance.now(); document.getElementById('prog').style.display='block'; }
         else if(performance.now()-gazeTime>2000){
           document.getElementById('prog').style.display='none';
           answer(o); gazed=null;
         }
       }
-    }else{gazed=null; document.getElementById('prog').style.display='none';}
+    }else{ gazed=null; document.getElementById('prog').style.display='none'; }
   }
   renderer.render(scene,camera);
 }
 
-// Touch = click for phones
-renderer.domElement.addEventListener('click',()=>{if(busy||items.length<10)return;
+// Tap support for phone
+renderer.domElement.addEventListener('click', ()=>{
+  if(busy || items.length<10) return;
   const hits=raycaster.setFromCamera(new THREE.Vector2(0,0),camera).intersectObjects(items,true);
-  if(hits.length){let o=hits[0].object;while(o&&!o.userData.name)o=o.parent; if(o)answer(o);}
+  if(hits.length){ let o=hits[0].object; while(o&&!o.userData.name)o=o.parent; if(o)answer(o); }
 });
 
-document.getElementById('vr').onclick=()=>navigator.xr?.requestSession('immersive-vr').then(s=>renderer.xr.setSession(s)).catch(()=>alert('VR not available'));
+document.getElementById('vr').onclick=()=>navigator.xr?.requestSession('immersive-vr').then(s=>renderer.xr.setSession(s)).catch(()=>alert('VR not supported here'));
 
-window.onresize=()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);};
-
-setTimeout(start,1500); // give phone a moment to breathe
+window.onresize=()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);};
 </script>
 </body>
 </html>
