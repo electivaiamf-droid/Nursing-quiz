@@ -214,7 +214,7 @@
     
     // Create VR question display
     let vrQuestionSprite = createTextSprite('Find the Adhesive Bandage');
-    vrQuestionSprite.position.set(0, 0.4, -1.5); // Closer to camera, above reticle
+    vrQuestionSprite.position.set(0, 0.65, -1.8); // Higher up, out of center view
     vrQuestionSprite.renderOrder = 999; // Render on top
     camera.add(vrQuestionSprite);
     vrQuestionSprite.visible = false;
@@ -416,8 +416,8 @@
         vrQuestionSprite.material.map.dispose();
         vrQuestionSprite.material.dispose();
       }
-      vrQuestionSprite = createTextSprite(`${questionText}\n${scoreText}`, 1);
-      vrQuestionSprite.position.set(0, 0.4, -1.5); // Positioned relative to camera
+      vrQuestionSprite = createTextSprite(`${questionText}\n${scoreText}`, 0.6); // Smaller size
+      vrQuestionSprite.position.set(0, 0.65, -1.8); // Top of view, out of way
       vrQuestionSprite.renderOrder = 999; // Always render on top
       camera.add(vrQuestionSprite);
       vrQuestionSprite.visible = isVR;
