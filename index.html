@@ -90,15 +90,17 @@ function loadItems(){
         obj.position.set(x,y,z);
         obj.userData.name=item.name;
 
-        // AUTO-SCALE MAGIC: fits everything between ~0.2 and 0.8 meters tall
+        // Step 1: Measure the model
         const box = new THREE.Box3().setFromObject(obj);
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
-        const desiredHeight = 0.4 + Math.random()*0.3;
-        const scale = desiredHeight / maxDim;
-        obj.scale.setScalar(scale);
 
-        // Gentle random rotation so they don’t look copy-pasted
+        // Step 2: Target size ~0.3–0.6, but HARD CAP at 0.7 no matter what
+        let target = 0.35 + Math.random()*0.25;
+        let scale = target / maxDim;
+        if (scale > 0.7 / maxDim) scale = 0.7 / maxDim;  // ←←← THE SCISSORS KILLER
+
+        obj.scale.setScalar(scale);
         obj.rotation.y = Math.random() * Math.PI;
 
         scene.add(obj);
@@ -146,4 +148,5 @@ window.onresize=()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectio
 </script>
 </body>
 </html>
+
 
