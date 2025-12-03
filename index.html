@@ -169,6 +169,54 @@
     progressRing.position.set(0, 0, -1);
     camera.add(progressRing);
     progressRing.visible = false;
+    
+    // Create 3D text sprite for VR (question display)
+    function createTextSprite(text, size = 0.8) {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = 2048;
+      canvas.height = 512;
+      
+      context.fillStyle = 'rgba(0, 0, 0, 0.85)';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      
+      context.font = 'bold 80px Arial';
+      context.fillStyle = '#ffffff';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      
+      // Word wrap
+      const words = text.split(' ');
+      let line = '';
+      let y = 180;
+      const maxWidth = 1900;
+      const lineHeight = 100;
+      
+      for (let word of words) {
+        const testLine = line + word + ' ';
+        const metrics = context.measureText(testLine);
+        if (metrics.width > maxWidth && line !== '') {
+          context.fillText(line, canvas.width / 2, y);
+          line = word + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      context.fillText(line, canvas.width / 2, y);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+      const sprite = new THREE.Sprite(spriteMaterial);
+      sprite.scale.set(size * 4, size, 1);
+      return sprite;
+    }
+    
+    // Create VR question display
+    let vrQuestionSprite = createTextSprite('Find the Adhesive Bandage');
+    vrQuestionSprite.position.set(0, 0.8, -2); // Above reticle
+    camera.add(vrQuestionSprite);
+    vrQuestionSprite.visible = false;
 
     // Controls
     let targetRotationX = 0, targetRotationY = 0;
@@ -227,20 +275,48 @@
 
     // Load background
     const loader = new THREE.GLTFLoader();
+    console.log('🏥 Attempting to load background:', BACKGROUND_FILE);
+    
     loader.load(BACKGROUND_FILE, 
       gltf => {
-        scene.add(gltf.scene);
-        console.log('✓ Hospital loaded');
+        const hospital = gltf.scene;
+        // Scale and position appropriately
+        hospital.scale.set(1, 1, 1);
+        hospital.position.set(0, 0, 0);
+        scene.add(hospital);
+        console.log('✓ Hospital loaded successfully!');
       },
-      undefined,
+      xhr => {
+        if (xhr.lengthComputable) {
+          const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
+          console.log(`Loading hospital: ${percent}%`);
+        }
+      },
       err => {
-        console.warn('Background failed, using fallback');
+        console.error('❌ Background failed to load:', err);
+        console.log('Creating fallback room...');
+        
+        // Better fallback room
         const floor = new THREE.Mesh(
           new THREE.CircleGeometry(20, 64),
-          new THREE.MeshStandardMaterial({color:0xaaaaaa})
+          new THREE.MeshStandardMaterial({color:0xcccccc, roughness:0.8})
         );
         floor.rotation.x = -Math.PI/2;
+        floor.receiveShadow = true;
         scene.add(floor);
+        
+        // Add walls
+        const wallGeometry = new THREE.CylinderGeometry(20, 20, 5, 32, 1, true);
+        const wallMaterial = new THREE.MeshStandardMaterial({
+          color:0xe8f4fc, 
+          side:THREE.BackSide,
+          roughness:0.9
+        });
+        const walls = new THREE.Mesh(wallGeometry, wallMaterial);
+        walls.position.y = 2.5;
+        scene.add(walls);
+        
+        console.log('✓ Fallback room created');
       }
     );
 
@@ -315,8 +391,21 @@
         showCompletion();
         return;
       }
-      document.getElementById('q').textContent = questions[q].prompt;
-      document.getElementById('s').textContent = `Score: ${score}/${questions.length}`;
+      const questionText = questions[q].prompt;
+      const scoreText = `Score: ${score}/${questions.length}`;
+      
+      // Update HTML UI
+      document.getElementById('q').textContent = questionText;
+      document.getElementById('s').textContent = scoreText;
+      
+      // Update VR 3D text
+      if (vrQuestionSprite) {
+        camera.remove(vrQuestionSprite);
+      }
+      vrQuestionSprite = createTextSprite(`${questionText}\n${scoreText}`);
+      vrQuestionSprite.position.set(0, 0.5, -2);
+      camera.add(vrQuestionSprite);
+      vrQuestionSprite.visible = isVR;
     }
 
     // Answer handler
@@ -482,21 +571,23 @@
     // VR session management
     renderer.xr.addEventListener('sessionstart', () => {
       isVR = true;
-      // Show 3D reticle in VR, hide HTML UI elements
+      // Show 3D reticle and question text in VR
       reticle.visible = true;
+      vrQuestionSprite.visible = true;
+      // Hide HTML UI elements
       document.querySelector('.reticle').style.display = 'none';
       document.querySelector('.prog').style.display = 'none';
-      // Keep question UI visible
-      document.getElementById('ui').style.display = 'block';
+      document.getElementById('ui').style.display = 'none'; // Hide HTML UI in VR
       document.getElementById('instructions').style.display = 'none';
-      console.log('✓ VR mode active - 3D reticle enabled');
+      console.log('✓ VR mode active - 3D UI enabled');
     });
     
     renderer.xr.addEventListener('sessionend', () => {
       isVR = false;
-      // Hide 3D reticle, show HTML UI
+      // Hide 3D elements, show HTML UI
       reticle.visible = false;
       progressRing.visible = false;
+      vrQuestionSprite.visible = false;
       document.querySelector('.reticle').style.display = 'block';
       document.getElementById('ui').style.display = 'block';
       document.getElementById('instructions').style.display = 'block';
@@ -525,3 +616,4 @@
   </script>
 </body>
 </html>
+
