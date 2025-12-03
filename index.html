@@ -81,20 +81,31 @@ function generateQuestions(){const s=[...vocab].sort(()=>Math.random()-0.5);ques
 function loadItems(){
   const r=3.5,step=Math.PI*2/vocab.length;
   questions.forEach((q,i)=>{
-    const a=i*step,x=Math.cos(a)*r,z=Math.sin(a)*r,y=1.2+Math.random()*0.4;
+    const a=i*step,x=Math.cos(a)*r,z=Math.sin(a)*r,y=1.2+Math.random()*0.2;
     const item=q.item;
 
     loader.load(item.link,
       gltf=>{
         const obj=gltf.scene;
         obj.position.set(x,y,z);
-        obj.scale.setScalar(0.4 + Math.random()*0.3);
         obj.userData.name=item.name;
+
+        // AUTO-SCALE MAGIC: fits everything between ~0.2 and 0.8 meters tall
+        const box = new THREE.Box3().setFromObject(obj);
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const desiredHeight = 0.4 + Math.random()*0.3;
+        const scale = desiredHeight / maxDim;
+        obj.scale.setScalar(scale);
+
+        // Gentle random rotation so they don’t look copy-pasted
+        obj.rotation.y = Math.random() * Math.PI;
+
         scene.add(obj);
         items.push(obj);
       },
       undefined,
-      ()=>{ // fallback cube if something goes wrong
+      ()=>{ // fallback cube
         const cube=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5),new THREE.MeshStandardMaterial({color:item.color,emissive:item.color,emissiveIntensity:0.5}));
         cube.position.set(x,y,z);cube.userData.name=item.name;scene.add(cube);items.push(cube);
       }
@@ -135,3 +146,4 @@ window.onresize=()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectio
 </script>
 </body>
 </html>
+
