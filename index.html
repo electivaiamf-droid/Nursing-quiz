@@ -214,7 +214,8 @@
     
     // Create VR question display
     let vrQuestionSprite = createTextSprite('Find the Adhesive Bandage');
-    vrQuestionSprite.position.set(0, 0.8, -2); // Above reticle
+    vrQuestionSprite.position.set(0, 0.4, -1.5); // Closer to camera, above reticle
+    vrQuestionSprite.renderOrder = 999; // Render on top
     camera.add(vrQuestionSprite);
     vrQuestionSprite.visible = false;
 
@@ -332,14 +333,14 @@
 
     // Load items
     function loadItems() {
-      const radius = 4;
+      const radius = 3; // Closer to player
       const angleStep = (Math.PI * 2) / vocab.length;
       
       questions.forEach((question, i) => {
         const angle = i * angleStep;
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
-        const y = 1.2 + (Math.random() * 0.3);
+        const y = 1.5; // Higher up, away from floor objects
         
         const itemData = question.item;
         
@@ -352,16 +353,25 @@
             const box = new THREE.Box3().setFromObject(obj);
             const size = box.getSize(new THREE.Vector3());
             const maxDim = Math.max(size.x, size.y, size.z);
-            const targetSize = 0.6;
+            const targetSize = 0.5; // Slightly smaller
             obj.scale.setScalar(targetSize / maxDim);
             
             obj.userData.name = itemData.name;
             obj.userData.uses = itemData.uses;
             obj.lookAt(camera.position);
             
+            // Make items render on top of background
+            obj.traverse((child) => {
+              if (child.isMesh) {
+                child.renderOrder = 100; // Render after background
+                child.material.depthTest = true;
+                child.material.depthWrite = true;
+              }
+            });
+            
             scene.add(obj);
             items.push(obj);
-            console.log(`✓ Loaded: ${itemData.name}`);
+            console.log(`✓ Loaded: ${itemData.name} at (${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`);
           },
           undefined,
           err => {
@@ -378,6 +388,7 @@
             cube.position.set(x, y, z);
             cube.userData.name = itemData.name;
             cube.userData.uses = itemData.uses;
+            cube.renderOrder = 100;
             scene.add(cube);
             items.push(cube);
           }
@@ -401,11 +412,17 @@
       // Update VR 3D text
       if (vrQuestionSprite) {
         camera.remove(vrQuestionSprite);
+        vrQuestionSprite.geometry.dispose();
+        vrQuestionSprite.material.map.dispose();
+        vrQuestionSprite.material.dispose();
       }
-      vrQuestionSprite = createTextSprite(`${questionText}\n${scoreText}`);
-      vrQuestionSprite.position.set(0, 0.5, -2);
+      vrQuestionSprite = createTextSprite(`${questionText}\n${scoreText}`, 1);
+      vrQuestionSprite.position.set(0, 0.4, -1.5); // Positioned relative to camera
+      vrQuestionSprite.renderOrder = 999; // Always render on top
       camera.add(vrQuestionSprite);
       vrQuestionSprite.visible = isVR;
+      
+      console.log(`Question updated: ${questionText} | VR text visible: ${isVR}`);
     }
 
     // Answer handler
@@ -616,4 +633,3 @@
   </script>
 </body>
 </html>
-
