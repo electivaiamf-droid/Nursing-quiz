@@ -345,19 +345,23 @@
 
     // Animation loop
     function animate() {
-      // Smooth camera rotation (lerp for smoothness)
-      const smoothFactor = 0.08; // Lower = smoother
-      currentRotationY += (targetRotationY - currentRotationY) * smoothFactor;
-      currentRotationX += (targetRotationX - currentRotationX) * smoothFactor;
-      
-      camera.rotation.order = 'YXZ';
-      camera.rotation.y = currentRotationY;
-      camera.rotation.x = currentRotationX;
+      // Only apply desktop/mobile controls when NOT in VR
+      if (!isVR) {
+        // Smooth camera rotation (lerp for smoothness)
+        const smoothFactor = 0.08; // Lower = smoother
+        currentRotationY += (targetRotationY - currentRotationY) * smoothFactor;
+        currentRotationX += (targetRotationX - currentRotationX) * smoothFactor;
+        
+        camera.rotation.order = 'YXZ';
+        camera.rotation.y = currentRotationY;
+        camera.rotation.x = currentRotationX;
+      }
+      // In VR, camera rotation is handled automatically by the headset
 
       // Rotate items
       items.forEach(obj => obj.rotation.y += 0.005);
 
-      // Gaze detection
+      // Gaze detection (works in both desktop and VR)
       if (!busy && items.length > 0) {
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -406,11 +410,14 @@
     document.getElementById('vr').onclick = () => {
       if ('xr' in navigator) {
         navigator.xr.requestSession('immersive-vr', {
-          optionalFeatures: ['local-floor', 'bounded-floor']
+          requiredFeatures: ['local-floor'],
+          optionalFeatures: ['bounded-floor', 'hand-tracking']
         }).then(session => {
           renderer.xr.setSession(session);
           isVR = true;
+          console.log('✓ VR session started');
         }).catch(err => {
+          console.error('VR error:', err);
           alert('VR not available.\n\nMake sure:\n- You\'re on HTTPS\n- VR device connected\n- Using Chrome/Edge/Oculus Browser');
         });
       } else {
@@ -421,12 +428,17 @@
     // VR session management
     renderer.xr.addEventListener('sessionstart', () => {
       isVR = true;
-      console.log('VR session started');
+      // Keep UI visible in VR (it will overlay)
+      document.getElementById('ui').style.display = 'block';
+      document.getElementById('instructions').style.display = 'none';
+      console.log('✓ VR mode active - UI overlay enabled');
     });
     
     renderer.xr.addEventListener('sessionend', () => {
       isVR = false;
-      console.log('VR session ended');
+      document.getElementById('ui').style.display = 'block';
+      document.getElementById('instructions').style.display = 'block';
+      console.log('✓ VR mode ended');
     });
 
     // Window resize
@@ -451,4 +463,3 @@
   </script>
 </body>
 </html>
-
