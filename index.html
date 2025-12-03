@@ -142,6 +142,33 @@
     let items = [], questions = [], q = 0, score = 0, busy = false;
     let gazed = null, gazeTime = 0;
     let isVR = false;
+    
+    // Create 3D reticle (for VR)
+    const reticleGeometry = new THREE.RingGeometry(0.015, 0.02, 32);
+    const reticleMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0xffffff, 
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8
+    });
+    const reticle = new THREE.Mesh(reticleGeometry, reticleMaterial);
+    reticle.position.set(0, 0, -1); // 1 meter in front of camera
+    camera.add(reticle); // Attach to camera so it follows
+    scene.add(camera); // Add camera to scene so reticle is visible
+    reticle.visible = false; // Hidden by default (shown in VR)
+    
+    // Create 3D progress ring (for VR)
+    const progressGeometry = new THREE.RingGeometry(0.02, 0.025, 32, 1, 0, Math.PI * 2);
+    const progressMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x00ffff, 
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.9
+    });
+    const progressRing = new THREE.Mesh(progressGeometry, progressMaterial);
+    progressRing.position.set(0, 0, -1);
+    camera.add(progressRing);
+    progressRing.visible = false;
 
     // Controls
     let targetRotationX = 0, targetRotationY = 0;
@@ -375,16 +402,43 @@
             if (gazed !== obj) {
               gazed = obj;
               gazeTime = performance.now();
-              document.getElementById('prog').style.display = 'block';
-            } else if (performance.now() - gazeTime > 2000) {
-              document.getElementById('prog').style.display = 'none';
-              answer(obj);
-              gazed = null;
+              // Show progress indicator (HTML for desktop, 3D for VR)
+              if (isVR) {
+                progressRing.visible = true;
+              } else {
+                document.getElementById('prog').style.display = 'block';
+              }
+            } else {
+              const elapsed = performance.now() - gazeTime;
+              
+              // Animate progress ring in VR
+              if (isVR && progressRing.visible) {
+                const progress = Math.min(elapsed / 2000, 1);
+                progressRing.geometry.dispose();
+                progressRing.geometry = new THREE.RingGeometry(
+                  0.02, 0.025, 32, 1, 0, Math.PI * 2 * progress
+                );
+              }
+              
+              if (elapsed > 2000) {
+                // Selection complete!
+                if (isVR) {
+                  progressRing.visible = false;
+                } else {
+                  document.getElementById('prog').style.display = 'none';
+                }
+                answer(obj);
+                gazed = null;
+              }
             }
           }
         } else {
           gazed = null;
-          document.getElementById('prog').style.display = 'none';
+          if (isVR) {
+            progressRing.visible = false;
+          } else {
+            document.getElementById('prog').style.display = 'none';
+          }
         }
       }
       
@@ -428,14 +482,22 @@
     // VR session management
     renderer.xr.addEventListener('sessionstart', () => {
       isVR = true;
-      // Keep UI visible in VR (it will overlay)
+      // Show 3D reticle in VR, hide HTML UI elements
+      reticle.visible = true;
+      document.querySelector('.reticle').style.display = 'none';
+      document.querySelector('.prog').style.display = 'none';
+      // Keep question UI visible
       document.getElementById('ui').style.display = 'block';
       document.getElementById('instructions').style.display = 'none';
-      console.log('✓ VR mode active - UI overlay enabled');
+      console.log('✓ VR mode active - 3D reticle enabled');
     });
     
     renderer.xr.addEventListener('sessionend', () => {
       isVR = false;
+      // Hide 3D reticle, show HTML UI
+      reticle.visible = false;
+      progressRing.visible = false;
+      document.querySelector('.reticle').style.display = 'block';
       document.getElementById('ui').style.display = 'block';
       document.getElementById('instructions').style.display = 'block';
       console.log('✓ VR mode ended');
