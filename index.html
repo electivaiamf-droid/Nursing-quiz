@@ -118,30 +118,60 @@ loader.load(BG,g=>scene.add(g.scene),null,()=>{
 });
 
 function loadItems(){
-  const radius=3.2,heightMin=.1,heightMax=3;
-  vocab.forEach((item,i)=>{
-    const angle=i*Math.PI*2/vocab.length,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius,y=heightMin+Math.random()*(heightMax-heightMin);
-    loader.load(item.link,gltf=>{
-      const obj=gltf.scene;
-      obj.position.set(x,y,z);
-      obj.traverse(c=>{c.userData.name=item.name;c.userData.uses=item.uses;});
-      const box=new THREE.Box3().setFromObject(obj);
-      const size=box.getSize(new THREE.Vector3()).length();
-      obj.scale.setScalar(1.3/size);
-      obj.rotation.y=Math.random()*Math.PI;
-      scene.add(obj);
-      items.push(obj);
-    },null,()=>{
-      const cube=new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.7),new THREE.MeshStandardMaterial({color:item.color,emissive:item.color,emissiveIntensity:.4}));
-      cube.position.set(x,y,z);
-      cube.userData.name=item.name;
-      cube.userData.uses=item.uses;
-      scene.add(cube);
-      items.push(cube);
-    });
+  const radius = 4.2;
+  const heightMin = 0.8;
+  const heightMax = 2.4;
+
+  vocab.forEach((item, i) => {
+    const angle = i * Math.PI * 2 / vocab.length;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    const y = heightMin + Math.random() * (heightMax - heightMin);
+
+    loader.load(
+      item.link,
+      gltf => {
+        const obj = gltf.scene;
+        obj.position.set(x, y, z);
+
+        // CRITICAL: Force correct name on every mesh
+        obj.traverse(child => {
+          if (child.isMesh || child.isObject3D) {
+            child.userData.name = item.name;
+            child.userData.uses = item.uses;
+            child.name = item.name;
+          }
+        });
+
+        // Perfect auto-scale
+        const box = new THREE.Box3().setFromObject(obj);
+        const size = box.getSize(new THREE.Vector3()).length();
+        obj.scale.setScalar(1.35 / size);
+
+        // Fix weird rotation from GLB
+        obj.up.set(0, 1, 0);
+        obj.rotation.y = Math.random() * Math.PI;
+
+        scene.add(obj);
+        items.push(obj);
+        console.log("Loaded:", item.name);
+      },
+      undefined,
+      err => {
+        console.warn("Failed to load", item.name, "→ using fallback");
+        const cube = new THREE.Mesh(
+          new THREE.BoxGeometry(0.7, 0.7, 0.7),
+          new THREE.MeshStandardMaterial({ color: item.color, emissive: item.color, emissiveIntensity: 0.4 })
+        );
+        cube.position.set(x, y, z);
+        cube.userData.name = item.name;
+        cube.userData.uses = item.uses;
+        scene.add(cube);
+        items.push(cube);
+      }
+    );
   });
 }
-
 function genQ(){
   questions=vocab.map(item=>({prompt:Math.random()>.5?`Find the ${item.name}`:`Find: ${item.uses}`,answer:item.name,item:item}));
   questions.sort(()=>Math.random()-.5);
@@ -366,6 +396,7 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
+
 
 
 
