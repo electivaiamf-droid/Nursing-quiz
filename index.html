@@ -6,7 +6,7 @@
 <title>Nursing VR Quiz</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-<base href="/Nursing-quiz/">
+<base href="/GAME-VR/">
 <style>
 body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;touch-action:none}
 #loading{position:fixed;inset:0;background:#0a1a2f;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999}
@@ -38,23 +38,26 @@ body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;touch-actio
 // Background Model: Change the long URL to a local relative path
 // --- Use these paths instead ---
 
+// --- THE FINAL, GUARANTEED PATHING SOLUTION ---
+
+const BASE_PATH = "https://raw.githubusercontent.com/electivaiamf-droid/Nursing-quiz/GAME-VR/";
+
 // Background Model
-const BG = "/Nursing-quiz/background.glb"; 
+const BG = BASE_PATH + "background.glb"; 
 
 const vocab = [
-    // Change all 'link' properties to the new structure
-    {name:"Adhesive Bandage", link:"/Nursing-quiz/bandage.glb",     color:0xF5DEB3, uses:"A small bandage to cover minor cuts or wounds"},
-    {name:"Hand Sanitizer",   link:"/Nursing-quiz/sanitizer.glb",    color:0x87CEEB, uses:"A liquid used to disinfect hands"},
-    {name:"Antiseptic Solution", link:"/Nursing-quiz/antiseptic.glb", color:0xDDA0DD, uses:"A liquid applied to wounds to prevent infection"},
-    {name:"Cotton Balls",     link:"/Nursing-quiz/cotton.glb",       color:0xFFFFFF, uses:"Soft, absorbent material used for cleaning wounds"},
-    {name:"Gauze",            link:"/Nursing-quiz/gauze.glb",        color:0xFAFAFA, uses:"A type of thin, woven fabric used for dressing wounds"},
-    {name:"Medical Gloves",   link:"/Nursing-quiz/gloves.glb",       color:0x98D8C8, uses:"Disposable gloves worn during medical procedures"},
-    {name:"Saline Solution",  link:"/Nursing-quiz/saline.glb",       color:0xADD8E6, uses:"A mixture of salt and water, used for cleaning wounds"},
-    {name:"Scissors",         link:"/Nursing-quiz/scissors.glb",     color:0xC0C0C0, uses:"A tool for cutting"},
-    {name:"Tweezers",         link:"/Nursing-quiz/tweezers.glb",     color:0xB0B0B0, uses:"A tool for picking up small objects"},
-    {name:"Thermometer",      link:"/Nursing-quiz/thermometer.glb",  color:0xFF6B6B, uses:"A device used to measure body temperature"}
+    // Prepend the BASE_PATH to all filenames
+    {name:"Adhesive Bandage", link: BASE_PATH + "bandage.glb",     color:0xF5DEB3, uses:"A small bandage to cover minor cuts or wounds"},
+    {name:"Hand Sanitizer",   link: BASE_PATH + "sanitizer.glb",    color:0x87CEEB, uses:"A liquid used to disinfect hands"},
+    {name:"Antiseptic Solution", link: BASE_PATH + "antiseptic.glb",  color:0xDDA0DD, uses:"A liquid applied to wounds to prevent infection"},
+    {name:"Cotton Balls",     link: BASE_PATH + "cotton.glb",        color:0xFFFFFF, uses:"Soft, absorbent material used for cleaning wounds"},
+    {name:"Gauze",            link: BASE_PATH + "gauze.glb",         color:0xFAFAFA, uses:"A type of thin, woven fabric used for dressing wounds"},
+    {name:"Medical Gloves",   link: BASE_PATH + "gloves.glb",        color:0x98D8C8, uses:"Disposable gloves worn during medical procedures"},
+    {name:"Saline Solution",  link: BASE_PATH + "saline.glb",        color:0xADD8E6, uses:"A mixture of salt and water, used for cleaning wounds"},
+    {name:"Scissors",         link: BASE_PATH + "scissors.glb",      color:0xC0C0C0, uses:"A tool for cutting"},
+    {name:"Tweezers",         link: BASE_PATH + "tweezers.glb",      color:0xB0B0B0, uses:"A tool for picking up small objects"},
+    {name:"Thermometer",      link: BASE_PATH + "thermometer.glb",   color:0xFF6B6B, uses:"A device used to measure body temperature"}
 ];
-// --- CORRECTION END ---
 
 let scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000),renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
 scene.background=new THREE.Color(0x0a1a2f);camera.position.y=1.6;
@@ -376,6 +379,7 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
+
 
 
 
