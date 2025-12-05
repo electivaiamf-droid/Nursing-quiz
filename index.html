@@ -131,7 +131,7 @@ loader.load(BG,g=>scene.add(g.scene),null,()=>{
 });
 
 function loadItems(){
-  const radius=3.2,heightMin=.1,heightMax=3;
+  const radius = 1.5, heightMin = .1, heightMax = 3;
   vocab.forEach((item,i)=>{
     const angle=i*Math.PI*2/vocab.length,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius,y=heightMin+Math.random()*(heightMax-heightMin);
     loader.load(item.link,gltf=>{
@@ -379,6 +379,7 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
+
 
 
 
