@@ -35,22 +35,24 @@ body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;touch-actio
 // --- CORRECTION START ---
 
 // Background Model: Change the long URL to a local relative path
-const BG = "./background.glb"; 
+// --- Use these paths instead ---
+
+// Background Model
+const BG = "/Nursing-quiz/background.glb"; 
 
 const vocab = [
-    // Change all 'link' properties to local relative paths
-    {name:"Adhesive Bandage", link:"./bandage.glb",     color:0xF5DEB3, uses:"A small bandage to cover minor cuts or wounds"},
-    {name:"Hand Sanitizer",   link:"./sanitizer.glb",    color:0x87CEEB, uses:"A liquid used to disinfect hands"},
-    {name:"Antiseptic Solution", link:"./antiseptic.glb", color:0xDDA0DD, uses:"A liquid applied to wounds to prevent infection"},
-    {name:"Cotton Balls",     link:"./cotton.glb",       color:0xFFFFFF, uses:"Soft, absorbent material used for cleaning wounds"},
-    {name:"Gauze",            link:"./gauze.glb",        color:0xFAFAFA, uses:"A type of thin, woven fabric used for dressing wounds"},
-    {name:"Medical Gloves",   link:"./gloves.glb",       color:0x98D8C8, uses:"Disposable gloves worn during medical procedures"},
-    {name:"Saline Solution",  link:"./saline.glb",       color:0xADD8E6, uses:"A mixture of salt and water, used for cleaning wounds"},
-    {name:"Scissors",         link:"./scissors.glb",     color:0xC0C0C0, uses:"A tool for cutting"},
-    {name:"Tweezers",         link:"./tweezers.glb",     color:0xB0B0B0, uses:"A tool for picking up small objects"},
-    {name:"Thermometer",      link:"./thermometer.glb",  color:0xFF6B6B, uses:"A device used to measure body temperature"}
+    // Change all 'link' properties to the new structure
+    {name:"Adhesive Bandage", link:"/Nursing-quiz/bandage.glb",     color:0xF5DEB3, uses:"A small bandage to cover minor cuts or wounds"},
+    {name:"Hand Sanitizer",   link:"/Nursing-quiz/sanitizer.glb",    color:0x87CEEB, uses:"A liquid used to disinfect hands"},
+    {name:"Antiseptic Solution", link:"/Nursing-quiz/antiseptic.glb", color:0xDDA0DD, uses:"A liquid applied to wounds to prevent infection"},
+    {name:"Cotton Balls",     link:"/Nursing-quiz/cotton.glb",       color:0xFFFFFF, uses:"Soft, absorbent material used for cleaning wounds"},
+    {name:"Gauze",            link:"/Nursing-quiz/gauze.glb",        color:0xFAFAFA, uses:"A type of thin, woven fabric used for dressing wounds"},
+    {name:"Medical Gloves",   link:"/Nursing-quiz/gloves.glb",       color:0x98D8C8, uses:"Disposable gloves worn during medical procedures"},
+    {name:"Saline Solution",  link:"/Nursing-quiz/saline.glb",       color:0xADD8E6, uses:"A mixture of salt and water, used for cleaning wounds"},
+    {name:"Scissors",         link:"/Nursing-quiz/scissors.glb",     color:0xC0C0C0, uses:"A tool for cutting"},
+    {name:"Tweezers",         link:"/Nursing-quiz/tweezers.glb",     color:0xB0B0B0, uses:"A tool for picking up small objects"},
+    {name:"Thermometer",      link:"/Nursing-quiz/thermometer.glb",  color:0xFF6B6B, uses:"A device used to measure body temperature"}
 ];
-
 // --- CORRECTION END ---
 
 let scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000),renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
@@ -373,5 +375,6 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
+
 
 
