@@ -323,20 +323,19 @@
 
     // Generate questions
     function generateQuestions() {
-      // DON'T shuffle - keep original order so items match their positions!
-      questions = vocab.map(item => {
-        // Randomly choose question type: name or use description
-        const useNamePrompt = Math.random() > 0.5;
-        return {
-          prompt: useNamePrompt ? `Find the ${item.name}` : `Find: ${item.uses}`,
-          correctAnswer: item.name,
-          item: item
-        };
-      });
+  // Create a SHUFFLED copy of vocab so positions stay fixed, but questions are random
+  const shuffled = [...vocab].sort(() => Math.random() - 0.5);
+
+  questions = shuffled.map(item => {
+    const useNamePrompt = Math.random() > 0.5;
+    return {
+      prompt: useNamePrompt ? `Find the ${item.name}` : `Find: ${item.uses}`,
+      correctAnswer: item.name,
+      item: item
+    };
+  });
+}
       
-      // Shuffle the ORDER of questions asked, not the items themselves
-      questions = questions.sort(() => Math.random() - 0.5);
-    }
 
     // Load items
     function loadItems() {
@@ -639,3 +638,4 @@
   </script>
 </body>
 </html>
+
