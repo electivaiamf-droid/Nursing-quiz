@@ -88,35 +88,48 @@ progRing3D.visible=false;
 
 // 3D VR text
 function createVRText(txt){
-  const canvas=document.createElement('canvas');
-  canvas.width=2048;canvas.height=512;
-  const ctx=canvas.getContext('2d');
-  ctx.fillStyle='rgba(0,0,0,0.85)';
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.font='bold 80px Arial';
-  ctx.fillStyle='#fff';
-  ctx.textAlign='center';
-  ctx.textBaseline='middle';
-  
-  // Word wrap
-  const words=txt.split(' ');
-  let line='',y=200;
-  for(let word of words){
-    const test=line+word+' ';
-    if(ctx.measureText(test).width>1900&&line!==''){
-      ctx.fillText(line,canvas.width/2,y);
-      line=word+' ';
-      y+=100;
-    }else line=test;
-  }
-  ctx.fillText(line,canvas.width/2,y);
-  
-  const tex=new THREE.CanvasTexture(canvas);
-  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex}));
-  sprite.scale.set(3,.75,1);
-  sprite.position.set(0,.6,-1.8);
-  sprite.renderOrder=999;
-  return sprite;
+    const canvas=document.createElement('canvas');
+    canvas.width=2048;canvas.height=512;
+    const ctx=canvas.getContext('2d');
+    
+    // 1. Fill style and canvas setup (Good)
+    ctx.fillStyle='rgba(0,0,0,0.85)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    
+    // 2. Increase Font Size for Sharper Text
+    ctx.font='bold 140px Arial'; 
+    ctx.fillStyle='#fff';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    
+    // Word wrap adjustments
+    const words=txt.split(' ');
+    let line='',y=180; // Adjusted starting Y
+    for(let word of words){
+        const test=line+word+' ';
+        // Adjusted width check for better margin
+        if(ctx.measureText(test).width>1800&&line!==''){ 
+            ctx.fillText(line,canvas.width/2,y);
+            line=word+' ';
+            y+=140; // Increased line spacing for larger font
+        }else line=test;
+    }
+    ctx.fillText(line,canvas.width/2,y);
+    
+    const tex=new THREE.CanvasTexture(canvas);
+    
+    // 3. Add Transparency and Depth Control to Material
+    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({
+        map:tex,
+        transparent: true,
+        depthTest: false
+    }));
+    
+    // 4. SIGNIFICANTLY REDUCE SCALE for VR comfort
+    sprite.scale.set(1.5, 0.375, 1); 
+    sprite.position.set(0,.6,-1.8);
+    sprite.renderOrder=999;
+    return sprite;
 }
 
 let vrText=createVRText("Loading...");
@@ -379,6 +392,7 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
+
 
 
 
