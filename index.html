@@ -53,6 +53,39 @@ scene.add(new THREE.AmbientLight(0xffffff,.9));
 scene.add(new THREE.DirectionalLight(0xffffff,1).position.set(5,10,7));
 
 let items=[],questions=[],q=0,score=0,busy=false,gazed=null,gazeTime=0,isVR=false,timeLeft=300,timerInterval;
+  // 3D VR gaze ring + progress ring + question text
+const reticle = new THREE.Mesh(
+  new THREE.RingGeometry(0.02, 0.03, 32),
+  new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+);
+reticle.position.z = -1;
+camera.add(reticle);
+reticle.visible = false;
+
+const progRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.03, 0.035, 32, 1, 0, Math.PI * 2),
+  new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+);
+progRing.position.z = -1;
+camera.add(progRing);
+progRing.visible = false;
+
+function createVRText(t) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024; canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.font = 'bold 80px Arial'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(t, canvas.width / 2, canvas.height / 2);
+  const texture = new THREE.CanvasTexture(canvas);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
+  sprite.scale.set(2, 0.5, 1);
+  sprite.position.set(0, 0.7, -1.8);
+  return sprite;
+}
+let vrText = createVRText("Find the...");
+camera.add(vrText);
+vrText.visible = false;
 
 // 3D VR gaze ring + progress ring + question text
 const reticle=new THREE.Mesh(new THREE.RingGeometry(.02,.025,32),new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,transparent:true,opacity:.9}));
@@ -105,7 +138,13 @@ function updateQ(){
   document.getElementById('q').textContent=questions[q].prompt;
   document.getElementById('s').textContent=`Score: ${score}/10`;
   updateTimer();
-  if(isVR){camera.remove(vrText);vrText=createVRText(questions[q].prompt);camera.add(vrText);vrText.visible=true;}
+  if (isVR) updateVRText(); // Update 3D text in VR
+}
+function updateVRText() {
+  camera.remove(vrText);
+  vrText = createVRText(questions[q].prompt);
+  camera.add(vrText);
+  vrText.visible = true;
 }
 function updateTimer(){
   const mins=Math.floor(timeLeft/60);
@@ -186,19 +225,37 @@ function animate(){
     camera.rotation.x=currentRotX;
   }
   items.forEach(o=>o.rotation.y+=.008);
-  if(!busy&&items.length>0){
-    const r=new THREE.Raycaster();r.setFromCamera(new THREE.Vector2(0,0),camera);
-    const h=r.intersectObjects(items,true);
-    if(h.length){
-      let o=h[0].object;while(o&&!o.userData.name)o=o.parent;
-      if(o?.userData.name){
-        if(gazed!==o){gazed=o;gazeTime=performance.now();progRing.visible=true;}
-        else if(performance.now()-gazeTime>1000){progRing.visible=false;answer(o);gazed=null;}
-        else{
+  // Gaze detection (works in both desktop and VR)
+if(!busy&&items.length>0){
+  const r=new THREE.Raycaster();r.setFromCamera(new THREE.Vector2(0,0),camera);
+  const h=r.intersectObjects(items,true);
+  if(h.length){
+    let o=h[0].object;while(o&&!o.userData.name)o=o.parent;
+    if(o?.userData.name){
+      if(gazed!==o){
+        gazed=o;
+        gazeTime=performance.now();
+        if (isVR) { reticle.visible = true; progRing.visible = true; }
+        else document.getElementById('prog').style.display='block';
+      }else if(performance.now()-gazeTime>1000){
+        if (isVR) { reticle.visible = false; progRing.visible = false; }
+        else document.getElementById('prog').style.display='none';
+        answer(o);
+        gazed=null;
+      }else{
+        // Progress animation for 3D ring
+        if (isVR) {
           const p=(performance.now()-gazeTime)/1000;
           progRing.geometry.dispose();
-          progRing.geometry=new THREE.RingGeometry(.03,.035,32,1,0,Math.PI*2*p);
+          progRing.geometry = new THREE.RingGeometry(0.03, 0.035, 32, 1, 0, Math.PI * 2 * p);
         }
+      }
+    }
+  }else{
+    gazed=null;
+    if (isVR) { reticle.visible = false; progRing.visible = false; }
+    else document.getElementById('prog').style.display='none';
+  }
       }
     }else{gazed=null;progRing.visible=false;}
   }
@@ -206,9 +263,24 @@ function animate(){
 }
 renderer.domElement.addEventListener('click',()=>{if(busy||items.length<10)return;const r=new THREE.Raycaster();r.setFromCamera(new THREE.Vector2(0,0),camera);const h=r.intersectObjects(items,true);if(h.length){let o=h[0].object;while(o&&!o.userData.name)o=o.parent;if(o?.userData.name)answer(o);}});
 document.getElementById('vr').onclick=()=>{navigator.xr?.requestSession('immersive-vr').then(s=>renderer.xr.setSession(s)).catch(()=>alert('VR not available'));};
-renderer.xr.addEventListener('sessionstart',()=>{isVR=true;reticle.visible=true;vrText.visible=true;document.getElementById('ui').style.display='none';document.getElementById('vr').style.display='none';});
-renderer.xr.addEventListener('sessionend',()=>{isVR=false;reticle.visible=false;vrText.visible=false;document.getElementById('ui').style.display='block';document.getElementById('vr').style.display='block';});
-window.onresize=()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);};
+renderer.xr.addEventListener('sessionstart', () => {
+  isVR = true;
+  reticle.visible = true;
+  vrText.visible = true;
+  document.getElementById('ui').style.display = 'none';
+  document.getElementById('vr').style.display = 'none';
+  updateVRText(); // Show current question in 3D
+  console.log('VR started - 3D UI on');
+});
+renderer.xr.addEventListener('sessionend', () => {
+  isVR = false;
+  reticle.visible = false;
+  vrText.visible = false;
+  progRing.visible = false;
+  document.getElementById('ui').style.display = 'block';
+  document.getElementById('vr').style.display = 'block';
+  console.log('VR ended - HTML UI on');
+});
 
 setTimeout(()=>{
   document.getElementById('loading').remove();
@@ -223,4 +295,5 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
+
 
