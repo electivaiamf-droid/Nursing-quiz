@@ -14,6 +14,7 @@ body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;touch-actio
 #ui{position:fixed;top:15px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:18px 35px;border-radius:18px;z-index:100;display:none;max-width:90%;text-align:center}
 #q{font-size:32px;font-weight:bold;margin-bottom:8px}
 #s{font-size:24px}
+#timer{font-size:28px;margin-top:8px;color:#00ff00;font-weight:bold}
 #vr{position:fixed;bottom:25px;left:50%;transform:translateX(-50%);padding:16px 50px;font-size:26px;background:#00bcd4;color:#fff;border:none;border-radius:40px;z-index:100;display:none;cursor:pointer}
 #fb{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:60px;font-weight:bold;padding:35px 70px;border-radius:25px;display:none;z-index:200;text-align:center;line-height:1.3}
 .correct{background:#006400;color:#fff}
@@ -24,7 +25,7 @@ body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;touch-actio
 </head>
 <body>
 <div id="loading"><h1>Loading...</h1><div class="loader"></div></div>
-<div id="ui"><div id="q"></div><div id="s">Score: 0/10</div></div>
+<div id="ui"><div id="q"></div><div id="s">Score: 0/10</div><div id="timer">Time: 5:00</div></div>
 <div class="reticle"></div>
 <div class="prog" id="prog"></div>
 <div id="fb"></div>
@@ -51,16 +52,17 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth
 scene.add(new THREE.AmbientLight(0xffffff,.9));
 scene.add(new THREE.DirectionalLight(0xffffff,1).position.set(5,10,7));
 
-let items=[],questions=[],q=0,score=0,busy=false,gazed=null,gazeTime=0,isVR=false;
+let items=[],questions=[],q=0,score=0,busy=false,gazed=null,gazeTime=0,isVR=false,timeLeft=300,timerInterval;
 const loader=new THREE.GLTFLoader();
 
 loader.load(BG,g=>scene.add(g.scene),null,()=>{const f=new THREE.Mesh(new THREE.CircleGeometry(20,64),new THREE.MeshStandardMaterial({color:0xaaa}));f.rotation.x=-Math.PI/2;scene.add(f);});
 
 function loadItems(){
-  const radius=5.2,heightBase=0.3,heightRange=2.6; // EXTREME vertical spread!
+  const radius=3.2; // MUCH closer to player!
+  const heightMin=0.1,heightMax=3.0; // EXTREME vertical: floor to ceiling!
   vocab.forEach((item,i)=>{
     const angle=i*Math.PI*2/vocab.length,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;
-    const y=heightBase+Math.random()*heightRange; // From 0.3 (floor) to 2.9 (ceiling)!
+    const y=heightMin+Math.random()*(heightMax-heightMin); // 0.1m to 3.0m!
     loader.load(item.link,gltf=>{
       const obj=gltf.scene;obj.position.set(x,y,z);
       obj.traverse(c=>{c.userData.name=item.name;c.userData.uses=item.uses;});
@@ -85,6 +87,30 @@ function updateQ(){
   if(q>=questions.length){showEnd();return}
   document.getElementById('q').textContent=questions[q].prompt;
   document.getElementById('s').textContent=`Score: ${score}/10`;
+  updateTimer();
+}
+
+function updateTimer(){
+  const mins=Math.floor(timeLeft/60);
+  const secs=timeLeft%60;
+  const timerEl=document.getElementById('timer');
+  timerEl.textContent=`Time: ${mins}:${secs<10?'0':''}${secs}`;
+  
+  // Color based on time remaining
+  if(timeLeft<=30)timerEl.style.color='#ff0000'; // Red when ≤30s
+  else if(timeLeft<=60)timerEl.style.color='#ff9900'; // Orange when ≤1min
+  else timerEl.style.color='#00ff00'; // Green
+}
+
+function startTimer(){
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    updateTimer();
+    if(timeLeft<=0){
+      clearInterval(timerInterval);
+      showEnd(true); // Time's up!
+    }
+  },1000);
 }
 
 function answer(obj){
@@ -105,12 +131,24 @@ function answer(obj){
   setTimeout(()=>{fb.style.display='none';q++;updateQ();busy=false;},3000);
 }
 
-function showEnd(){
+function showEnd(timeUp){
+  clearInterval(timerInterval);
   const fb=document.getElementById('fb');
   fb.className='correct';
-  fb.innerHTML=`🎉 Quiz Complete!<br>Score: ${score}/10`;
+  if(timeUp){
+    fb.innerHTML=`⏰ Time's Up!<br>Score: ${score}/10`;
+    speak(`Time's up! You scored ${score} out of 10`);
+  }else{
+    fb.innerHTML=`🎉 Quiz Complete!<br>Score: ${score}/10<br>Time: ${formatTime(300-timeLeft)}`;
+    speak(`Quiz complete! You scored ${score} out of 10 in ${300-timeLeft} seconds`);
+  }
   fb.style.display='block';
-  speak(`Quiz complete! You scored ${score} out of 10`);
+}
+
+function formatTime(seconds){
+  const mins=Math.floor(seconds/60);
+  const secs=seconds%60;
+  return `${mins}:${secs<10?'0':''}${secs}`;
 }
 
 function speak(t){
@@ -204,9 +242,9 @@ setTimeout(()=>{
   genQ();
   loadItems();
   updateQ();
+  startTimer(); // Start countdown!
   renderer.setAnimationLoop(animate);
 },1200);
 </script>
 </body>
 </html>
-
