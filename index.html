@@ -19,8 +19,8 @@ body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;touch-actio
 #fb{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:60px;font-weight:bold;padding:35px 70px;border-radius:25px;display:none;z-index:200;text-align:center;line-height:1.3}
 .correct{background:#006400;color:#fff}
 .incorrect{background:#8B0000;color:#fff}
-.reticle{position:fixed;top:50%;left:50%;width:40px;height:40px;border:4px solid rgba(255,255,255,.8);border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:99}
-.prog{position:fixed;top:50%;left:50%;width:60px;height:60px;border:6px solid transparent;border-top:6px solid cyan;border-radius:50%;transform:translate(-50%,-50%);display:none;animation:s 2s linear;z-index:99}
+.reticle{position:fixed;top:50%;left:50%;width:50px;height:50px;border:5px solid #fff;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:99;display:none}
+.prog{position:fixed;top:50%;left:50%;width:70px;height:70px;border:8px solid transparent;border-top:8px solid cyan;border-radius:50%;transform:translate(-50%,-50%);display:none;animation:s 2s linear;z-index:99}
 </style>
 </head>
 <body>
@@ -49,15 +49,15 @@ const vocab=[
 let scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000),renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
 scene.background=new THREE.Color(0x0a1a2f);camera.position.y=1.6;
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;document.body.appendChild(renderer.domElement);
-scene.add(new THREE.AmbientLight(0xffffff,.8));
-const dl=new THREE.DirectionalLight(0xffffff,.9);dl.position.set(5,10,7);scene.add(dl);
+scene.add(new THREE.AmbientLight(0xffffff,.9));
+scene.add(new THREE.DirectionalLight(0xffffff,1).position.set(5,10,7));
 
 let items=[],questions=[],q=0,score=0,busy=false,gazed=null,gazeTime=0,isVR=false,timeLeft=300,timerInterval;
 
 // 3D VR gaze ring + progress ring + question text
-const reticle=new THREE.Mesh(new THREE.RingGeometry(.015,.02,32),new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,transparent:true,opacity:.9}));
+const reticle=new THREE.Mesh(new THREE.RingGeometry(.02,.025,32),new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,transparent:true,opacity:.9}));
 reticle.position.z=-1;camera.add(reticle);reticle.visible=false;
-const progRing=new THREE.Mesh(new THREE.RingGeometry(.025,.03,32,1,0,Math.PI*2),new THREE.MeshBasicMaterial({color:0x00ffff,side:THREE.DoubleSide,transparent:true,opacity:.9}));
+const progRing=new THREE.Mesh(new THREE.RingGeometry(.03,.035,32,1,0,Math.PI*2),new THREE.MeshBasicMaterial({color:0x00ffff,side:THREE.DoubleSide,transparent:true,opacity:.9}));
 progRing.position.z=-1;camera.add(progRing);progRing.visible=false;
 
 function createVRText(t){
@@ -65,7 +65,7 @@ function createVRText(t){
   x.fillStyle='rgba(0,0,0,0.85)';x.fillRect(0,0,c.width,c.height);
   x.font='bold 80px Arial';x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';x.fillText(t,c.width/2,c.height/2);
   const tex=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex}));
-  s.scale.set(2,0.5,1);s.position.set(0,0.7,-1.8);return s;
+  s.scale.set(2,0.5,1);s.position.set(0,0.8,-2);return s;
 }
 let vrText=createVRText("Find the...");
 camera.add(vrText);vrText.visible=false;
@@ -74,83 +74,153 @@ camera.add(vrText);vrText.visible=false;
 const loader=new THREE.GLTFLoader();
 loader.load(BG,g=>scene.add(g.scene),null,()=>{const f=new THREE.Mesh(new THREE.CircleGeometry(20,64),new THREE.MeshStandardMaterial({color:0xaaa}));f.rotation.x=-Math.PI/2;scene.add(f);});
 
-// Start
-setTimeout(()=>{document.getElementById('loading').remove();document.getElementById('ui').style.display='block';document.getElementById('vr').style.display='block';genQ();loadItems();updateQ();startTimer();renderer.setAnimationLoop(animate);},1200);
-
-function genQ(){
-  questions=vocab.map(item=>({prompt:Math.random()>.5?`Find the ${item.name}`:`Find: ${item.uses}`,answer:item.name}));
-  questions.sort(()=>Math.random()-.5);
-}
 function loadItems(){
-  const r=4.2;
+  const radius=3.2;
+  const heightMin=0.1,heightMax=3.0;
   vocab.forEach((item,i)=>{
-    const a=i*Math.PI*2/vocab.length,x=Math.cos(a)*r,z=Math.sin(a)*r,y=1.1+Math.random()*0.4;
+    const angle=i*Math.PI*2/vocab.length,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;
+    const y=heightMin+Math.random()*(heightMax-heightMin);
     loader.load(item.link,gltf=>{
       const obj=gltf.scene;obj.position.set(x,y,z);
       obj.traverse(c=>{c.userData.name=item.name;c.userData.uses=item.uses;});
       const box=new THREE.Box3().setFromObject(obj);
       const size=box.getSize(new THREE.Vector3()).length();
-      obj.scale.setScalar(1.2/size);
-      obj.up.set(0,1,0); // ← fixes weird rotation
+      obj.scale.setScalar(1.3/size);
+      obj.up.set(0,1,0); // ← fixes "toward walls" bug
       obj.rotation.y=Math.random()*Math.PI;
       scene.add(obj);items.push(obj);
+    },null,()=>{
+      const cube=new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.7),new THREE.MeshStandardMaterial({color:item.color,emissive:item.color,emissiveIntensity:.4}));
+      cube.position.set(x,y,z);cube.userData.name=item.name;cube.userData.uses=item.uses;scene.add(cube);items.push(cube);
     });
   });
+}
+
+function genQ(){
+  questions=vocab.map(item=>({prompt:Math.random()>.5?`Find the ${item.name}`:`Find: ${item.uses}`,answer:item.name,item:item}));
+  questions.sort(()=>Math.random()-.5);
 }
 function updateQ(){
   if(q>=questions.length){showEnd();return}
   document.getElementById('q').textContent=questions[q].prompt;
   document.getElementById('s').textContent=`Score: ${score}/10`;
+  updateTimer();
   if(isVR){camera.remove(vrText);vrText=createVRText(questions[q].prompt);camera.add(vrText);vrText.visible=true;}
+}
+function updateTimer(){
+  const mins=Math.floor(timeLeft/60);
+  const secs=timeLeft%60;
+  const timerEl=document.getElementById('timer');
+  timerEl.textContent=`Time: ${mins}:${secs<10?'0':''}${secs}`;
+  if(timeLeft<=30)timerEl.style.color='#ff0000';
+  else if(timeLeft<=60)timerEl.style.color='#ff9900';
+  else timerEl.style.color='#00ff00';
 }
 function startTimer(){
   timerInterval=setInterval(()=>{timeLeft--;updateTimer();if(timeLeft<=0){clearInterval(timerInterval);showEnd(true);}},1000);
 }
-function updateTimer(){
-  const m=Math.floor(timeLeft/60),s=timeLeft%60;
-  document.getElementById('timer').textContent=`Time: ${m}:${s<10?'0':''}${s}`;
-}
 function answer(obj){
   if(busy)return;busy=true;
-  const correct=obj.userData.name===questions[q].answer;
+  const selectedName=obj.userData.name,correctName=questions[q].answer;
+  const correct=selectedName===correctName;
   if(correct)score++;
-  const fb=document.getElementById('fb');fb.className=correct?'correct':'incorrect';
-  fb.innerHTML=correct?'✓ Correct!':'✗ Incorrect';
+  const fb=document.getElementById('fb');
+  fb.className=correct?'correct':'incorrect';
+  if(correct){
+    fb.innerHTML='Correct!';
+    speak(`Correct! ${selectedName}. ${obj.userData.uses}`);
+  }else{
+    fb.innerHTML=`Incorrect<br>That's ${selectedName}<br>Correct: ${correctName}`;
+    speak(`Incorrect. That is ${selectedName}. The correct answer was ${correctName}`);
+  }
   fb.style.display='block';
-  speak(correct?`Correct! ${obj.userData.name}`:`Incorrect. Correct was ${questions[q].answer}`);
   setTimeout(()=>{fb.style.display='none';q++;updateQ();busy=false;},3000);
 }
-function showEnd(timeUp=false){
+function showEnd(timeUp){
   clearInterval(timerInterval);
-  const fb=document.getElementById('fb');fb.className='correct';
-  fb.innerHTML=timeUp?`Time's Up!<br>Score: ${score}/10`:`Quiz Complete!<br>Score: ${score}/10`;
+  const fb=document.getElementById('fb');
+  fb.className='correct';
+  if(timeUp){
+    fb.innerHTML=`Time's Up!<br>Score: ${score}/10`;
+    speak(`Time's up! You scored ${score} out of 10`);
+  }else{
+    fb.innerHTML=`Quiz Complete!<br>Score: ${score}/10<br>Time: ${formatTime(300-timeLeft)}`;
+    speak(`Quiz complete! You scored ${score} out of 10`);
+  }
   fb.style.display='block';
 }
+function formatTime(s){const m=Math.floor(s/60);const sec=s%60;return `${m}:${sec<10?'0':''}${sec}`;}
 function speak(t){if('speechSynthesis'in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=.9;speechSynthesis.speak(u);}}
 
-let lon=0,lat=0;
-document.addEventListener('mousemove',e=>{lon=(e.clientX/innerWidth)*360-180;lat=-((e.clientY/innerHeight)*180-90);lat=Math.max(-85,Math.min(85,lat));});
+let targetRotX=0,targetRotY=0,currentRotX=0,currentRotY=0;
+let lastMouseX=innerWidth/2,lastMouseY=innerHeight/2,lastTouchX=0,lastTouchY=0,touching=false;
+document.addEventListener('mousemove',e=>{
+  if(isVR)return;
+  const deltaX=e.clientX-lastMouseX;
+  const deltaY=e.clientY-lastMouseY;
+  targetRotY+=deltaX*.005;
+  targetRotX-=deltaY*.005;
+  targetRotX=Math.max(-Math.PI/3,Math.min(Math.PI/3,targetRotX));
+  lastMouseX=e.clientX;
+  lastMouseY=e.clientY;
+});
+document.addEventListener('touchstart',e=>{touching=true;lastTouchX=e.touches[0].clientX;lastTouchY=e.touches[0].clientY;});
+document.addEventListener('touchmove',e=>{
+  if(!touching||isVR)return;
+  e.preventDefault();
+  const dx=e.touches[0].clientX-lastTouchX,dy=e.touches[0].clientY-lastTouchY;
+  targetRotY+=dx*.005;
+  targetRotX-=dy*.005;
+  targetRotX=Math.max(-Math.PI/3,Math.min(Math.PI/3,targetRotX));
+  lastTouchX=e.touches[0].clientX;
+  lastTouchY=e.touches[0].clientY;
+},{passive:false});
+document.addEventListener('touchend',()=>touching=false);
+
 function animate(){
-  if(!isVR){lon*=0.92;lat*=0.92;const phi=THREE.MathUtils.degToRad(90-lat);const theta=THREE.MathUtils.degToRad(lon);camera.lookAt(camera.position.x+Math.sin(phi)*Math.cos(theta)*10,camera.position.y+Math.cos(phi)*10,camera.position.z+Math.sin(phi)*Math.sin(theta)*10);}
-  items.forEach(o=>o.rotation.y+=0.008);
+  if(!isVR){
+    currentRotY+=(targetRotY-currentRotY)*.1;
+    currentRotX+=(targetRotX-currentRotX)*.1;
+    camera.rotation.order='YXZ';
+    camera.rotation.y=currentRotY;
+    camera.rotation.x=currentRotX;
+  }
+  items.forEach(o=>o.rotation.y+=.008);
   if(!busy&&items.length>0){
     const r=new THREE.Raycaster();r.setFromCamera(new THREE.Vector2(0,0),camera);
     const h=r.intersectObjects(items,true);
-    if(h.length){let o=h[0].object;while(o&&!o.userData.name)o=o.parent;
+    if(h.length){
+      let o=h[0].object;while(o&&!o.userData.name)o=o.parent;
       if(o?.userData.name){
         if(gazed!==o){gazed=o;gazeTime=performance.now();progRing.visible=true;}
         else if(performance.now()-gazeTime>1000){progRing.visible=false;answer(o);gazed=null;}
-        else {const p=(performance.now()-gazeTime)/1000;progRing.geometry.dispose();progRing.geometry=new THREE.RingGeometry(0.025,0.03,32,1,0,Math.PI*2*p);}
+        else{
+          const p=(performance.now()-gazeTime)/1000;
+          progRing.geometry.dispose();
+          progRing.geometry=new THREE.RingGeometry(.03,.035,32,1,0,Math.PI*2*p);
+        }
       }
     }else{gazed=null;progRing.visible=false;}
   }
   renderer.render(scene,camera);
 }
-renderer.domElement.addEventListener('click',()=>{if(busy||items.length<10)return;const r=new THREE.Raycaster();r.setFromCamera(new THREE.Vector2(0,0),camera);const h=r.intersectObjects(items,true);if(h.length){let o=h[0].object;while(o&&!o.userData.name)o=o.parent;if(o)answer(o);}});
+renderer.domElement.addEventListener('click',()=>{if(busy||items.length<10)return;const r=new THREE.Raycaster();r.setFromCamera(new THREE.Vector2(0,0),camera);const h=r.intersectObjects(items,true);if(h.length){let o=h[0].object;while(o&&!o.userData.name)o=o.parent;if(o?.userData.name)answer(o);}});
 document.getElementById('vr').onclick=()=>{navigator.xr?.requestSession('immersive-vr').then(s=>renderer.xr.setSession(s)).catch(()=>alert('VR not available'));};
 renderer.xr.addEventListener('sessionstart',()=>{isVR=true;reticle.visible=true;vrText.visible=true;document.getElementById('ui').style.display='none';document.getElementById('vr').style.display='none';});
 renderer.xr.addEventListener('sessionend',()=>{isVR=false;reticle.visible=false;vrText.visible=false;document.getElementById('ui').style.display='block';document.getElementById('vr').style.display='block';});
 window.onresize=()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);};
+
+setTimeout(()=>{
+  document.getElementById('loading').remove();
+  document.getElementById('ui').style.display='block';
+  document.getElementById('vr').style.display='block';
+  genQ();
+  loadItems();
+  updateQ();
+  startTimer();
+  renderer.setAnimationLoop(animate);
+},1200);
 </script>
 </body>
 </html>
+
