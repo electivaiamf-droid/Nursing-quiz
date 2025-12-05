@@ -32,18 +32,18 @@ body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;touch-actio
 <button id="vr">Enter VR</button>
 
 <script>
-const BG="https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/background.glb";
+const BG="https://files.catbox.moe/reiuka.glb";
 const vocab=[
-  {name:"Adhesive Bandage",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/bandage.glb",color:0xF5DEB3,uses:"A small bandage to cover minor cuts or wounds"},
-  {name:"Hand Sanitizer",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/sanitizer.glb",color:0x87CEEB,uses:"A liquid used to disinfect hands"},
-  {name:"Antiseptic Solution",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/antiseptic.glb",color:0xDDA0DD,uses:"A liquid applied to wounds to prevent infection"},
-  {name:"Cotton Balls",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/cotton.glb",color:0xFFFFFF,uses:"Soft, absorbent material used for cleaning wounds"},
-  {name:"Gauze",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/gauze.glb",color:0xFAFAFA,uses:"A type of thin, woven fabric used for dressing wounds"},
-  {name:"Medical Gloves",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/gloves.glb",color:0x98D8C8,uses:"Disposable gloves worn during medical procedures"},
-  {name:"Saline Solution",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/saline.glb",color:0xADD8E6,uses:"A mixture of salt and water, used for cleaning wounds"},
-  {name:"Scissors",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/scissors.glb",color:0xC0C0C0,uses:"A tool for cutting"},
-  {name:"Tweezers",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/tweezers.glb",color:0xB0B0B0,uses:"A tool for picking up small objects"},
-  {name:"Thermometer",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/thermometer.glb",color:0xFF6B6B,uses:"A device used to measure body temperature"}
+  {name:"Adhesive Bandage",link:"https://files.catbox.moe/edy3gw.glb",color:0xF5DEB3,uses:"A small bandage to cover minor cuts or wounds"},
+  {name:"Hand Sanitizer",link:"https://files.catbox.moe/o997s6.glb",color:0x87CEEB,uses:"A liquid used to disinfect hands"},
+  {name:"Antiseptic Solution",link:"https://files.catbox.moe/1t002n.glb",color:0xDDA0DD,uses:"A liquid applied to wounds to prevent infection"},
+  {name:"Cotton Balls",link:"https://files.catbox.moe/eay3dl.glb",color:0xFFFFFF,uses:"Soft, absorbent material used for cleaning wounds"},
+  {name:"Gauze",link:"https://files.catbox.moe/vm9c7n.glb",color:0xFAFAFA,uses:"A type of thin, woven fabric used for dressing wounds"},
+  {name:"Medical Gloves",link:"https://files.catbox.moe/2tifp9.glb",color:0x98D8C8,uses:"Disposable gloves worn during medical procedures"},
+  {name:"Saline Solution",link:"https://files.catbox.moe/dgg8tw.glb",color:0xADD8E6,uses:"A mixture of salt and water, used for cleaning wounds"},
+  {name:"Scissors",link:"https://files.catbox.moe/bc4xkb.glb",color:0xC0C0C0,uses:"A tool for cutting"},
+  {name:"Tweezers",link:"https://files.catbox.moe/pf2i81.glb",color:0xB0B0B0,uses:"A tool for picking up small objects"},
+  {name:"Thermometer",link:"https://files.catbox.moe/0glqs3.glb",color:0xFF6B6B,uses:"A device used to measure body temperature"}
 ];
 
 let scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000),renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
@@ -53,7 +53,7 @@ scene.add(new THREE.AmbientLight(0xffffff,.9));
 scene.add(new THREE.DirectionalLight(0xffffff,1).position.set(5,10,7));
 scene.add(camera);
 
-let items=[],questions=[],q=0,score=0,busy=false,gazed=null,gazeTime=0,isVR=false,timeLeft=300,timerInterval,loadedCount=0;
+let items=[],questions=[],q=0,score=0,busy=false,gazed=null,gazeTime=0,isVR=false,timeLeft=300,timerInterval;
 
 // 3D VR reticle
 const reticle3D=new THREE.Mesh(
@@ -117,75 +117,28 @@ loader.load(BG,g=>scene.add(g.scene),null,()=>{
   scene.add(f);
 });
 
-function checkAllLoaded(){
-  loadedCount++;
-  if(loadedCount===vocab.length){
-    document.getElementById('loading').remove();
-    document.getElementById('ui').style.display='block';
-    document.getElementById('vr').style.display='block';
-    genQ();
-    updateQ();
-    startTimer();
-    renderer.setAnimationLoop(animate);
-    console.log(`✓ All ${vocab.length} items loaded successfully`);
-  }
-}
-
 function loadItems(){
-  const radius = 4.2;
-  const heightMin = 0.8;
-  const heightMax = 2.4;
-
-  vocab.forEach((item, i) => {
-    const angle = i * Math.PI * 2 / vocab.length;
-    const x = Math.cos(angle) * radius;
-    const z = Math.sin(angle) * radius;
-    const y = heightMin + Math.random() * (heightMax - heightMin);
-
-    loader.load(
-      item.link,
-      gltf => {
-        const obj = gltf.scene;
-        obj.position.set(x, y, z);
-
-        // CRITICAL: Force correct name on every mesh
-        obj.traverse(child => {
-          if (child.isMesh || child.isObject3D) {
-            child.userData.name = item.name;
-            child.userData.uses = item.uses;
-            child.name = item.name;
-          }
-        });
-
-        // Perfect auto-scale
-        const box = new THREE.Box3().setFromObject(obj);
-        const size = box.getSize(new THREE.Vector3()).length();
-        obj.scale.setScalar(1.35 / size);
-
-        // Fix weird rotation from GLB
-        obj.up.set(0, 1, 0);
-        obj.rotation.y = Math.random() * Math.PI;
-
-        scene.add(obj);
-        items.push(obj);
-        checkAllLoaded();
-        console.log("Loaded:", item.name);
-      },
-      undefined,
-      err => {
-        console.warn("Failed to load", item.name, "→ using fallback");
-        const cube = new THREE.Mesh(
-          new THREE.BoxGeometry(0.7, 0.7, 0.7),
-          new THREE.MeshStandardMaterial({ color: item.color, emissive: item.color, emissiveIntensity: 0.4 })
-        );
-        cube.position.set(x, y, z);
-        cube.userData.name = item.name;
-        cube.userData.uses = item.uses;
-        scene.add(cube);
-        items.push(cube);
-        checkAllLoaded();
-      }
-    );
+  const radius=3.2,heightMin=.1,heightMax=3;
+  vocab.forEach((item,i)=>{
+    const angle=i*Math.PI*2/vocab.length,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius,y=heightMin+Math.random()*(heightMax-heightMin);
+    loader.load(item.link,gltf=>{
+      const obj=gltf.scene;
+      obj.position.set(x,y,z);
+      obj.traverse(c=>{c.userData.name=item.name;c.userData.uses=item.uses;});
+      const box=new THREE.Box3().setFromObject(obj);
+      const size=box.getSize(new THREE.Vector3()).length();
+      obj.scale.setScalar(1.3/size);
+      obj.rotation.y=Math.random()*Math.PI;
+      scene.add(obj);
+      items.push(obj);
+    },null,()=>{
+      const cube=new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.7),new THREE.MeshStandardMaterial({color:item.color,emissive:item.color,emissiveIntensity:.4}));
+      cube.position.set(x,y,z);
+      cube.userData.name=item.name;
+      cube.userData.uses=item.uses;
+      scene.add(cube);
+      items.push(cube);
+    });
   });
 }
 
@@ -400,8 +353,16 @@ renderer.xr.addEventListener('sessionend',()=>{
 // Start
 window.onresize=()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);};
 
-// Start loading immediately - game begins when all items are loaded
-loadItems();
+setTimeout(()=>{
+  document.getElementById('loading').remove();
+  document.getElementById('ui').style.display='block';
+  document.getElementById('vr').style.display='block';
+  genQ();
+  loadItems();
+  updateQ();
+  startTimer();
+  renderer.setAnimationLoop(animate);
+},1200);
 </script>
 </body>
 </html>
