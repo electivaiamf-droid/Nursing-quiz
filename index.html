@@ -32,18 +32,18 @@ body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;touch-actio
 <button id="vr">Enter VR</button>
 
 <script>
-const BG="https://files.catbox.moe/reiuka.glb";
+const BG="https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/background.glb";
 const vocab=[
-  {name:"Adhesive Bandage",link:"https://files.catbox.moe/edy3gw.glb",color:0xF5DEB3,uses:"A small bandage to cover minor cuts or wounds"},
-  {name:"Hand Sanitizer",link:"https://files.catbox.moe/o997s6.glb",color:0x87CEEB,uses:"A liquid used to disinfect hands"},
-  {name:"Antiseptic Solution",link:"https://files.catbox.moe/1t002n.glb",color:0xDDA0DD,uses:"A liquid applied to wounds to prevent infection"},
-  {name:"Cotton Balls",link:"https://files.catbox.moe/eay3dl.glb",color:0xFFFFFF,uses:"Soft, absorbent material used for cleaning wounds"},
-  {name:"Gauze",link:"https://files.catbox.moe/vm9c7n.glb",color:0xFAFAFA,uses:"A type of thin, woven fabric used for dressing wounds"},
-  {name:"Medical Gloves",link:"https://files.catbox.moe/2tifp9.glb",color:0x98D8C8,uses:"Disposable gloves worn during medical procedures"},
-  {name:"Saline Solution",link:"https://files.catbox.moe/dgg8tw.glb",color:0xADD8E6,uses:"A mixture of salt and water, used for cleaning wounds"},
-  {name:"Scissors",link:"https://files.catbox.moe/bc4xkb.glb",color:0xC0C0C0,uses:"A tool for cutting"},
-  {name:"Tweezers",link:"https://files.catbox.moe/pf2i81.glb",color:0xB0B0B0,uses:"A tool for picking up small objects"},
-  {name:"Thermometer",link:"https://files.catbox.moe/0glqs3.glb",color:0xFF6B6B,uses:"A device used to measure body temperature"}
+  {name:"Adhesive Bandage",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/bandage.glb",color:0xF5DEB3,uses:"A small bandage to cover minor cuts or wounds"},
+  {name:"Hand Sanitizer",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/sanitizer.glb",color:0x87CEEB,uses:"A liquid used to disinfect hands"},
+  {name:"Antiseptic Solution",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/antiseptic.glb",color:0xDDA0DD,uses:"A liquid applied to wounds to prevent infection"},
+  {name:"Cotton Balls",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/cotton.glb",color:0xFFFFFF,uses:"Soft, absorbent material used for cleaning wounds"},
+  {name:"Gauze",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/gauze.glb",color:0xFAFAFA,uses:"A type of thin, woven fabric used for dressing wounds"},
+  {name:"Medical Gloves",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/gloves.glb",color:0x98D8C8,uses:"Disposable gloves worn during medical procedures"},
+  {name:"Saline Solution",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/saline.glb",color:0xADD8E6,uses:"A mixture of salt and water, used for cleaning wounds"},
+  {name:"Scissors",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/scissors.glb",color:0xC0C0C0,uses:"A tool for cutting"},
+  {name:"Tweezers",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/tweezers.glb",color:0xB0B0B0,uses:"A tool for picking up small objects"},
+  {name:"Thermometer",link:"https://github.com/electivaiamf-droid/Nursing-quiz/releases/download/v.1/thermometer.glb",color:0xFF6B6B,uses:"A device used to measure body temperature"}
 ];
 
 let scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000),renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
