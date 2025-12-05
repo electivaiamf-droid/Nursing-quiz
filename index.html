@@ -18,8 +18,8 @@ body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;touch-actio
 #fb{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:60px;font-weight:bold;padding:35px 70px;border-radius:25px;display:none;z-index:200;text-align:center;line-height:1.3}
 .correct{background:#006400;color:#fff}
 .incorrect{background:#8B0000;color:#fff}
-.reticle{position:fixed;top:50%;left:50%;width:40px;height:40px;border:4px solid rgba(255,255,255,.8);border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:99}
-.prog{position:fixed;top:50%;left:50%;width:60px;height:60px;border:6px solid transparent;border-top:6px solid cyan;border-radius:50%;transform:translate(-50%,-50%);display:none;animation:s 2s linear;z-index:99}
+.reticle{position:fixed;top:50%;left:50%;width:50px;height:50px;border:5px solid #fff;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:99}
+.prog{position:fixed;top:50%;left:50%;width:70px;height:70px;border:8px solid transparent;border-top:8px solid cyan;border-radius:50%;transform:translate(-50%,-50%);display:none;animation:s 2s linear;z-index:99}
 </style>
 </head>
 <body>
@@ -46,78 +46,39 @@ const vocab=[
 ];
 
 let scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000),renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
-scene.background=new THREE.Color(0x0a1a2f);
-camera.position.y=1.6;
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.setSize(innerWidth,innerHeight);
-renderer.xr.enabled=true;
-document.body.appendChild(renderer.domElement);
-
-scene.add(new THREE.AmbientLight(0xffffff,.8));
-const dl=new THREE.DirectionalLight(0xffffff,.9);
-dl.position.set(5,10,7);
-scene.add(dl);
+scene.background=new THREE.Color(0x0a1a2f);camera.position.y=1.6;
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;document.body.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0xffffff,.9));
+scene.add(new THREE.DirectionalLight(0xffffff,1).position.set(5,10,7));
 
 let items=[],questions=[],q=0,score=0,busy=false,gazed=null,gazeTime=0,isVR=false;
 const loader=new THREE.GLTFLoader();
 
-// Load background
-loader.load(BG,g=>scene.add(g.scene),null,()=>{
-  const f=new THREE.Mesh(new THREE.CircleGeometry(20,64),new THREE.MeshStandardMaterial({color:0xaaa}));
-  f.rotation.x=-Math.PI/2;
-  scene.add(f);
-});
+loader.load(BG,g=>scene.add(g.scene),null,()=>{const f=new THREE.Mesh(new THREE.CircleGeometry(20,64),new THREE.MeshStandardMaterial({color:0xaaa}));f.rotation.x=-Math.PI/2;scene.add(f);});
 
-// Generate questions (DON'T shuffle vocab order!)
-function genQ(){
-  questions=vocab.map(item=>({
-    prompt:Math.random()>.5?`Find the ${item.name}`:`Find: ${item.uses}`,
-    answer:item.name,
-    item:item
-  }));
-  // Shuffle QUESTION ORDER only, not item positions
-  questions.sort(()=>Math.random()-.5);
+function loadItems(){
+  const radius=5.2,heightBase=0.8,heightRange=1.2; // More vertical spread!
+  vocab.forEach((item,i)=>{
+    const angle=i*Math.PI*2/vocab.length,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;
+    const y=heightBase+Math.random()*heightRange; // From 0.8 to 2.0 meters high
+    loader.load(item.link,gltf=>{
+      const obj=gltf.scene;obj.position.set(x,y,z);
+      obj.traverse(c=>{c.userData.name=item.name;c.userData.uses=item.uses;});
+      const box=new THREE.Box3().setFromObject(obj);
+      const size=box.getSize(new THREE.Vector3()).length();
+      obj.scale.setScalar(1.3/size);
+      obj.rotation.y=Math.random()*Math.PI;
+      scene.add(obj);items.push(obj);
+    },null,()=>{
+      const cube=new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.7),new THREE.MeshStandardMaterial({color:item.color,emissive:item.color,emissiveIntensity:.4}));
+      cube.position.set(x,y,z);cube.userData.name=item.name;cube.userData.uses=item.uses;scene.add(cube);items.push(cube);
+    });
+  });
 }
 
-// Load items in CONSISTENT positions
-function loadItems(){
-  const r=4;
-  vocab.forEach((item,i)=>{
-    const a=i*Math.PI*2/vocab.length,x=Math.cos(a)*r,z=Math.sin(a)*r,y=1.2;
-    loader.load(item.link,
-      gltf=>{
-        const obj=gltf.scene;
-        obj.position.set(x,y,z);
-        
-        // CRITICAL: Force correct name on ALL children
-        obj.traverse(child=>{
-          child.userData.name=item.name;
-          child.userData.uses=item.uses;
-        });
-        
-        // Auto-scale
-        const box=new THREE.Box3().setFromObject(obj);
-        const size=box.getSize(new THREE.Vector3()).length();
-        obj.scale.setScalar(1.1/size);
-        
-        obj.rotation.y=Math.random()*Math.PI;
-        scene.add(obj);
-        items.push(obj);
-        console.log(`✓ ${item.name} at pos ${i}`);
-      },
-      null,
-      ()=>{
-        // Fallback cube
-        const cube=new THREE.Mesh(new THREE.BoxGeometry(.6,.6,.6),new THREE.MeshStandardMaterial({color:item.color,emissive:item.color,emissiveIntensity:.3}));
-        cube.position.set(x,y,z);
-        cube.userData.name=item.name;
-        cube.userData.uses=item.uses;
-        scene.add(cube);
-        items.push(cube);
-        console.log(`✓ ${item.name} (fallback) at pos ${i}`);
-      }
-    );
-  });
+function genQ(){
+  questions=vocab.map(item=>({prompt:Math.random()>.5?`Find the ${item.name}`:`Find: ${item.uses}`,answer:item.name,item:item}));
+  questions.sort(()=>Math.random()-.5);
 }
 
 function updateQ(){
@@ -127,34 +88,21 @@ function updateQ(){
 }
 
 function answer(obj){
-  if(busy)return;
-  busy=true;
-  
-  const selectedName=obj.userData.name;
-  const correctName=questions[q].answer;
+  if(busy)return;busy=true;
+  const selectedName=obj.userData.name,correctName=questions[q].answer;
   const correct=selectedName===correctName;
-  
   if(correct)score++;
-
   const fb=document.getElementById('fb');
   fb.className=correct?'correct':'incorrect';
-  
   if(correct){
-    fb.textContent='✓ Correct!';
+    fb.innerHTML='✓ Correct!';
     speak(`Correct! ${selectedName}. ${obj.userData.uses}`);
   }else{
     fb.innerHTML=`✗ Incorrect<br>That's ${selectedName}<br>Correct: ${correctName}`;
     speak(`Incorrect. That is ${selectedName}. The correct answer was ${correctName}`);
   }
-  
   fb.style.display='block';
-  
-  setTimeout(()=>{
-    fb.style.display='none';
-    q++;
-    updateQ();
-    busy=false;
-  },3000);
+  setTimeout(()=>{fb.style.display='none';q++;updateQ();busy=false;},3000);
 }
 
 function showEnd(){
@@ -165,113 +113,90 @@ function showEnd(){
   speak(`Quiz complete! You scored ${score} out of 10`);
 }
 
-function speak(txt){
+function speak(t){
   if('speechSynthesis'in window){
     speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(txt);
+    const u=new SpeechSynthesisUtterance(t);
     u.rate=.9;
     speechSynthesis.speak(u);
   }
 }
 
-// Mouse/touch controls (optimized)
-let lon=0,lat=0,mouseX=0,mouseY=0,touching=false;
+// Mouse + Touch controls
+let targetRotX=0,targetRotY=0,currentRotX=0,currentRotY=0;
+let lastMouseX=innerWidth/2,lastMouseY=innerHeight/2,lastTouchX=0,lastTouchY=0,touching=false;
 
 document.addEventListener('mousemove',e=>{
   if(isVR)return;
-  mouseX=(e.clientX/innerWidth)*2-1;
-  mouseY=-(e.clientY/innerHeight)*2+1;
-  lon=mouseX*180;
-  lat=mouseY*60;
+  const deltaX=e.clientX-lastMouseX;
+  const deltaY=e.clientY-lastMouseY;
+  targetRotY+=deltaX*.005; // Accumulate rotation
+  targetRotX-=deltaY*.005;
+  targetRotX=Math.max(-Math.PI/3,Math.min(Math.PI/3,targetRotX)); // Clamp vertical
+  lastMouseX=e.clientX;
+  lastMouseY=e.clientY;
 });
 
-document.addEventListener('touchstart',e=>{touching=true;mouseX=e.touches[0].clientX;mouseY=e.touches[0].clientY});
+document.addEventListener('touchstart',e=>{touching=true;lastTouchX=e.touches[0].clientX;lastTouchY=e.touches[0].clientY;});
 document.addEventListener('touchmove',e=>{
   if(!touching||isVR)return;
   e.preventDefault();
-  const dx=e.touches[0].clientX-mouseX,dy=e.touches[0].clientY-mouseY;
-  lon+=dx*.3;
-  lat-=dy*.3;
-  lat=Math.max(-60,Math.min(60,lat));
-  mouseX=e.touches[0].clientX;
-  mouseY=e.touches[0].clientY;
+  const dx=e.touches[0].clientX-lastTouchX,dy=e.touches[0].clientY-lastTouchY;
+  targetRotY+=dx*.005;
+  targetRotX-=dy*.005;
+  targetRotX=Math.max(-Math.PI/3,Math.min(Math.PI/3,targetRotX));
+  lastTouchX=e.touches[0].clientX;
+  lastTouchY=e.touches[0].clientY;
 },{passive:false});
 document.addEventListener('touchend',()=>touching=false);
 
 function animate(){
-  // Camera control (only if not in VR)
   if(!isVR){
-    lon*=.85;
-    lat*=.85;
-    const phi=THREE.MathUtils.degToRad(90-lat);
-    const theta=THREE.MathUtils.degToRad(lon);
-    camera.lookAt(
-      camera.position.x+Math.sin(phi)*Math.cos(theta)*10,
-      camera.position.y+Math.cos(phi)*10,
-      camera.position.z+Math.sin(phi)*Math.sin(theta)*10
-    );
-  }
-
-  // Rotate items
-  items.forEach(o=>o.rotation.y+=.008);
-
-  // Gaze detection
-  if(!busy&&items.length>0){
-    const ray=new THREE.Raycaster();
-    ray.setFromCamera(new THREE.Vector2(0,0),camera);
-    const hits=ray.intersectObjects(items,true);
+    // Smooth interpolation to target rotation
+    currentRotY+=(targetRotY-currentRotY)*.1;
+    currentRotX+=(targetRotX-currentRotX)*.1;
     
-    if(hits.length){
-      let o=hits[0].object;
-      while(o&&!o.userData.name)o=o.parent;
-      
-      if(o?.userData.name){
-        if(gazed!==o){
-          gazed=o;
-          gazeTime=performance.now();
-          document.getElementById('prog').style.display='block';
-        }else if(performance.now()-gazeTime>2000){
-          document.getElementById('prog').style.display='none';
-          answer(o);
-          gazed=null;
-        }
-      }
-    }else{
-      gazed=null;
-      document.getElementById('prog').style.display='none';
-    }
+    camera.rotation.order='YXZ';
+    camera.rotation.y=currentRotY;
+    camera.rotation.x=currentRotX;
   }
   
+  items.forEach(o=>o.rotation.y+=.008);
+  
+  if(!busy&&items.length>0){
+    const r=new THREE.Raycaster();r.setFromCamera(new THREE.Vector2(0,0),camera);
+    const h=r.intersectObjects(items,true);
+    if(h.length){
+      let o=h[0].object;
+      while(o&&!o.userData.name)o=o.parent;
+      if(o?.userData.name){
+        if(gazed!==o){gazed=o;gazeTime=performance.now();document.getElementById('prog').style.display='block';}
+        else if(performance.now()-gazeTime>2000){document.getElementById('prog').style.display='none';answer(o);gazed=null;}
+      }
+    }else{gazed=null;document.getElementById('prog').style.display='none';}
+  }
   renderer.render(scene,camera);
 }
 
-// Click/tap support
 renderer.domElement.addEventListener('click',()=>{
   if(busy||items.length<10)return;
-  const ray=new THREE.Raycaster();
-  ray.setFromCamera(new THREE.Vector2(0,0),camera);
-  const hits=ray.intersectObjects(items,true);
-  if(hits.length){
-    let o=hits[0].object;
-    while(o&&!o.userData.name)o=o.parent;
-    if(o?.userData.name)answer(o);
-  }
+  const r=new THREE.Raycaster();r.setFromCamera(new THREE.Vector2(0,0),camera);
+  const h=r.intersectObjects(items,true);
+  if(h.length){let o=h[0].object;while(o&&!o.userData.name)o=o.parent;if(o?.userData.name)answer(o);}
 });
 
-// VR button
 document.getElementById('vr').onclick=()=>{
   if(!navigator.xr)return alert('WebXR not supported');
   navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor']})
-    .then(s=>{renderer.xr.setSession(s);isVR=true})
-    .catch(()=>alert('VR not available. Use Chrome on Android or Oculus Browser'));
+    .then(s=>{renderer.xr.setSession(s);isVR=true;})
+    .catch(()=>alert('VR not available'));
 };
 
 renderer.xr.addEventListener('sessionstart',()=>isVR=true);
 renderer.xr.addEventListener('sessionend',()=>isVR=false);
 
-window.onresize=()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)};
+window.onresize=()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);};
 
-// Start
 setTimeout(()=>{
   document.getElementById('loading').remove();
   document.getElementById('ui').style.display='block';
