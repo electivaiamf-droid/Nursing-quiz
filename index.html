@@ -53,7 +53,7 @@ scene.add(new THREE.AmbientLight(0xffffff,.9));
 scene.add(new THREE.DirectionalLight(0xffffff,1).position.set(5,10,7));
 scene.add(camera);
 
-let items=[],questions=[],q=0,score=0,busy=false,gazed=null,gazeTime=0,isVR=false,timeLeft=300,timerInterval;
+let items=[],questions=[],q=0,score=0,busy=false,gazed=null,gazeTime=0,isVR=false,timeLeft=300,timerInterval,loadedCount=0;
 
 // 3D VR reticle
 const reticle3D=new THREE.Mesh(
@@ -117,6 +117,20 @@ loader.load(BG,g=>scene.add(g.scene),null,()=>{
   scene.add(f);
 });
 
+function checkAllLoaded(){
+  loadedCount++;
+  if(loadedCount===vocab.length){
+    document.getElementById('loading').remove();
+    document.getElementById('ui').style.display='block';
+    document.getElementById('vr').style.display='block';
+    genQ();
+    updateQ();
+    startTimer();
+    renderer.setAnimationLoop(animate);
+    console.log(`✓ All ${vocab.length} items loaded successfully`);
+  }
+}
+
 function loadItems(){
   const radius = 4.2;
   const heightMin = 0.8;
@@ -154,6 +168,7 @@ function loadItems(){
 
         scene.add(obj);
         items.push(obj);
+        checkAllLoaded();
         console.log("Loaded:", item.name);
       },
       undefined,
@@ -168,10 +183,12 @@ function loadItems(){
         cube.userData.uses = item.uses;
         scene.add(cube);
         items.push(cube);
+        checkAllLoaded();
       }
     );
   });
 }
+
 function genQ(){
   questions=vocab.map(item=>({prompt:Math.random()>.5?`Find the ${item.name}`:`Find: ${item.uses}`,answer:item.name,item:item}));
   questions.sort(()=>Math.random()-.5);
@@ -383,20 +400,8 @@ renderer.xr.addEventListener('sessionend',()=>{
 // Start
 window.onresize=()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);};
 
-setTimeout(()=>{
-  document.getElementById('loading').remove();
-  document.getElementById('ui').style.display='block';
-  document.getElementById('vr').style.display='block';
-  genQ();
-  loadItems();
-  updateQ();
-  startTimer();
-  renderer.setAnimationLoop(animate);
-},1200);
+// Start loading immediately - game begins when all items are loaded
+loadItems();
 </script>
 </body>
 </html>
-
-
-
-
