@@ -358,7 +358,7 @@
             const box = new THREE.Box3().setFromObject(obj);
             const size = box.getSize(new THREE.Vector3());
             const maxDim = Math.max(size.x, size.y, size.z);
-            const targetSize = 0.5; // Slightly smaller
+            const targetSize = 1.0; // Slightly smaller
             obj.scale.setScalar(targetSize / maxDim);
             
             obj.userData.name = itemData.name;
@@ -638,4 +638,5 @@
   </script>
 </body>
 </html>
+
 
