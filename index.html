@@ -144,28 +144,55 @@ loader.load(BG,g=>scene.add(g.scene),null,()=>{
 });
 
 function loadItems(){
-  const radius = 1.5, heightMin = .1, heightMax = 3;
-  vocab.forEach((item,i)=>{
-    const angle=i*Math.PI*2/vocab.length,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius,y=heightMin+Math.random()*(heightMax-heightMin);
-    loader.load(item.link,gltf=>{
-      const obj=gltf.scene;
-      obj.position.set(x,y,z);
-      obj.traverse(c=>{c.userData.name=item.name;c.userData.uses=item.uses;});
-      const box=new THREE.Box3().setFromObject(obj);
-      const size=box.getSize(new THREE.Vector3()).length();
-      obj.scale.setScalar(1.3/size);
-      obj.rotation.y=Math.random()*Math.PI;
-      scene.add(obj);
-      items.push(obj);
-    },null,()=>{
-      const cube=new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.7),new THREE.MeshStandardMaterial({color:item.color,emissive:item.color,emissiveIntensity:.4}));
-      cube.position.set(x,y,z);
-      cube.userData.name=item.name;
-      cube.userData.uses=item.uses;
-      scene.add(cube);
-      items.push(cube);
+    // 1. DEFINE NEW SCATTERING PARAMETERS
+    const baseRadius = 2.2;        // The comfortable distance from the center (e.g., 2.2 meters)
+    const radiusVariation = 0.4;   // Random range for distance (e.g., +/- 0.4 meters)
+    const randomShift = 0.6;       // The maximum amount items can shift off the ring (e.g., 0.6 meters)
+    const heightMin = 0.5, heightMax = 2.5; // Adjusted height range for better visibility
+    
+    vocab.forEach((item,i)=>{
+        // 2. CALCULATE CHAOTIC POSITION
+        
+        // Calculate the individual item's radius (base + random variation)
+        const currentRadius = baseRadius + (Math.random() * radiusVariation * 2) - radiusVariation; 
+        
+        const angle = i * Math.PI * 2 / vocab.length;
+        
+        // Calculate position on the randomized radius ring
+        let x = Math.cos(angle) * currentRadius;
+        let z = Math.sin(angle) * currentRadius;
+        
+        // Apply random shifts to X and Z to scatter them
+        const offsetX = (Math.random() * randomShift * 2) - randomShift;
+        const offsetZ = (Math.random() * randomShift * 2) - randomShift;
+        
+        x += offsetX;
+        z += offsetZ;
+        
+        // Calculate the randomized height
+        const y = heightMin + Math.random() * (heightMax - heightMin);
+        
+        // 3. LOADER LOGIC (uses the new x, y, z)
+        loader.load(item.link,gltf=>{
+            const obj=gltf.scene;
+            obj.position.set(x,y,z); // SETS THE NEW, SCATTERED POSITION
+            obj.traverse(c=>{c.userData.name=item.name;c.userData.uses=item.uses;});
+            const box=new THREE.Box3().setFromObject(obj);
+            const size=box.getSize(new THREE.Vector3()).length();
+            obj.scale.setScalar(1.3/size);
+            obj.rotation.y=Math.random()*Math.PI;
+            scene.add(obj);
+            items.push(obj);
+        },null,()=>{
+            const cube=new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.7),new THREE.MeshStandardMaterial({color:item.color,emissive:item.color,emissiveIntensity:.4}));
+            cube.position.set(x,y,z);
+            cube.userData.name=item.name;
+            cube.userData.uses=item.uses;
+            scene.add(cube);
+            items.push(cube);
+        });
     });
-  });
+}
 }
 
 function genQ(){
@@ -392,6 +419,7 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
+
 
 
 
