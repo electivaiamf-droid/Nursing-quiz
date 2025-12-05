@@ -19,7 +19,7 @@ body{margin:0;overflow:hidden;background:#000;font-family:sans-serif;touch-actio
 #fb{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:60px;font-weight:bold;padding:35px 70px;border-radius:25px;display:none;z-index:200;text-align:center;line-height:1.3}
 .correct{background:#006400;color:#fff}
 .incorrect{background:#8B0000;color:#fff}
-.reticle{position:fixed;top:50%;left:50%;width:50px;height:50px;border:5px solid #fff;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:99;display:none}
+.reticle{position:fixed;top:50%;left:50%;width:50px;height:50px;border:5px solid #fff;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:99}
 .prog{position:fixed;top:50%;left:50%;width:70px;height:70px;border:8px solid transparent;border-top:8px solid cyan;border-radius:50%;transform:translate(-50%,-50%);display:none;animation:s 2s linear;z-index:99}
 </style>
 </head>
@@ -51,80 +51,93 @@ scene.background=new THREE.Color(0x0a1a2f);camera.position.y=1.6;
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;document.body.appendChild(renderer.domElement);
 scene.add(new THREE.AmbientLight(0xffffff,.9));
 scene.add(new THREE.DirectionalLight(0xffffff,1).position.set(5,10,7));
+scene.add(camera);
 
 let items=[],questions=[],q=0,score=0,busy=false,gazed=null,gazeTime=0,isVR=false,timeLeft=300,timerInterval;
-  // 3D VR gaze ring + progress ring + question text
-const reticle = new THREE.Mesh(
-  new THREE.RingGeometry(0.02, 0.03, 32),
-  new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
-);
-reticle.position.z = -1;
-camera.add(reticle);
-reticle.visible = false;
 
-const progRing = new THREE.Mesh(
-  new THREE.RingGeometry(0.03, 0.035, 32, 1, 0, Math.PI * 2),
-  new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+// 3D VR reticle
+const reticle3D=new THREE.Mesh(
+  new THREE.RingGeometry(.015,.02,32),
+  new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,transparent:true,opacity:.9})
 );
-progRing.position.z = -1;
-camera.add(progRing);
-progRing.visible = false;
+reticle3D.position.set(0,0,-1);
+camera.add(reticle3D);
+reticle3D.visible=false;
 
-function createVRText(t) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 1024; canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.font = 'bold 80px Arial'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(t, canvas.width / 2, canvas.height / 2);
-  const texture = new THREE.CanvasTexture(canvas);
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
-  sprite.scale.set(2, 0.5, 1);
-  sprite.position.set(0, 0.7, -1.8);
+// 3D VR progress ring
+const progRing3D=new THREE.Mesh(
+  new THREE.RingGeometry(.025,.03,32),
+  new THREE.MeshBasicMaterial({color:0x00ffff,side:THREE.DoubleSide,transparent:true,opacity:.9})
+);
+progRing3D.position.set(0,0,-1);
+camera.add(progRing3D);
+progRing3D.visible=false;
+
+// 3D VR text
+function createVRText(txt){
+  const canvas=document.createElement('canvas');
+  canvas.width=2048;canvas.height=512;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='rgba(0,0,0,0.85)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.font='bold 80px Arial';
+  ctx.fillStyle='#fff';
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  
+  // Word wrap
+  const words=txt.split(' ');
+  let line='',y=200;
+  for(let word of words){
+    const test=line+word+' ';
+    if(ctx.measureText(test).width>1900&&line!==''){
+      ctx.fillText(line,canvas.width/2,y);
+      line=word+' ';
+      y+=100;
+    }else line=test;
+  }
+  ctx.fillText(line,canvas.width/2,y);
+  
+  const tex=new THREE.CanvasTexture(canvas);
+  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex}));
+  sprite.scale.set(3,.75,1);
+  sprite.position.set(0,.6,-1.8);
+  sprite.renderOrder=999;
   return sprite;
 }
-let vrText = createVRText("Find the...");
+
+let vrText=createVRText("Loading...");
 camera.add(vrText);
-vrText.visible = false;
+vrText.visible=false;
 
-// 3D VR gaze ring + progress ring + question text
-const reticle=new THREE.Mesh(new THREE.RingGeometry(.02,.025,32),new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,transparent:true,opacity:.9}));
-reticle.position.z=-1;camera.add(reticle);reticle.visible=false;
-const progRing=new THREE.Mesh(new THREE.RingGeometry(.03,.035,32,1,0,Math.PI*2),new THREE.MeshBasicMaterial({color:0x00ffff,side:THREE.DoubleSide,transparent:true,opacity:.9}));
-progRing.position.z=-1;camera.add(progRing);progRing.visible=false;
-
-function createVRText(t){
-  const c=document.createElement('canvas');c.width=1024;c.height=256;const x=c.getContext('2d');
-  x.fillStyle='rgba(0,0,0,0.85)';x.fillRect(0,0,c.width,c.height);
-  x.font='bold 80px Arial';x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';x.fillText(t,c.width/2,c.height/2);
-  const tex=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex}));
-  s.scale.set(2,0.5,1);s.position.set(0,0.8,-2);return s;
-}
-let vrText=createVRText("Find the...");
-camera.add(vrText);vrText.visible=false;
-
-// Load background + fallback
 const loader=new THREE.GLTFLoader();
-loader.load(BG,g=>scene.add(g.scene),null,()=>{const f=new THREE.Mesh(new THREE.CircleGeometry(20,64),new THREE.MeshStandardMaterial({color:0xaaa}));f.rotation.x=-Math.PI/2;scene.add(f);});
+loader.load(BG,g=>scene.add(g.scene),null,()=>{
+  const f=new THREE.Mesh(new THREE.CircleGeometry(20,64),new THREE.MeshStandardMaterial({color:0xaaa}));
+  f.rotation.x=-Math.PI/2;
+  scene.add(f);
+});
 
 function loadItems(){
-  const radius=3.2;
-  const heightMin=0.1,heightMax=3.0;
+  const radius=3.2,heightMin=.1,heightMax=3;
   vocab.forEach((item,i)=>{
-    const angle=i*Math.PI*2/vocab.length,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;
-    const y=heightMin+Math.random()*(heightMax-heightMin);
+    const angle=i*Math.PI*2/vocab.length,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius,y=heightMin+Math.random()*(heightMax-heightMin);
     loader.load(item.link,gltf=>{
-      const obj=gltf.scene;obj.position.set(x,y,z);
+      const obj=gltf.scene;
+      obj.position.set(x,y,z);
       obj.traverse(c=>{c.userData.name=item.name;c.userData.uses=item.uses;});
       const box=new THREE.Box3().setFromObject(obj);
       const size=box.getSize(new THREE.Vector3()).length();
       obj.scale.setScalar(1.3/size);
-      obj.up.set(0,1,0); // ← fixes "toward walls" bug
       obj.rotation.y=Math.random()*Math.PI;
-      scene.add(obj);items.push(obj);
+      scene.add(obj);
+      items.push(obj);
     },null,()=>{
       const cube=new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.7),new THREE.MeshStandardMaterial({color:item.color,emissive:item.color,emissiveIntensity:.4}));
-      cube.position.set(x,y,z);cube.userData.name=item.name;cube.userData.uses=item.uses;scene.add(cube);items.push(cube);
+      cube.position.set(x,y,z);
+      cube.userData.name=item.name;
+      cube.userData.uses=item.uses;
+      scene.add(cube);
+      items.push(cube);
     });
   });
 }
@@ -133,76 +146,84 @@ function genQ(){
   questions=vocab.map(item=>({prompt:Math.random()>.5?`Find the ${item.name}`:`Find: ${item.uses}`,answer:item.name,item:item}));
   questions.sort(()=>Math.random()-.5);
 }
+
 function updateQ(){
   if(q>=questions.length){showEnd();return}
-  document.getElementById('q').textContent=questions[q].prompt;
+  const prompt=questions[q].prompt;
+  document.getElementById('q').textContent=prompt;
   document.getElementById('s').textContent=`Score: ${score}/10`;
   updateTimer();
-  if (isVR) updateVRText(); // Update 3D text in VR
+  
+  // Update VR text
+  if(isVR){
+    camera.remove(vrText);
+    vrText.geometry?.dispose();
+    vrText.material?.map?.dispose();
+    vrText.material?.dispose();
+    vrText=createVRText(`${prompt}\nScore: ${score}/10`);
+    camera.add(vrText);
+    vrText.visible=true;
+  }
 }
-function updateVRText() {
-  camera.remove(vrText);
-  vrText = createVRText(questions[q].prompt);
-  camera.add(vrText);
-  vrText.visible = true;
-}
+
 function updateTimer(){
-  const mins=Math.floor(timeLeft/60);
-  const secs=timeLeft%60;
+  const mins=Math.floor(timeLeft/60),secs=timeLeft%60;
   const timerEl=document.getElementById('timer');
   timerEl.textContent=`Time: ${mins}:${secs<10?'0':''}${secs}`;
-  if(timeLeft<=30)timerEl.style.color='#ff0000';
-  else if(timeLeft<=60)timerEl.style.color='#ff9900';
-  else timerEl.style.color='#00ff00';
+  if(timeLeft<=30)timerEl.style.color='#f00';
+  else if(timeLeft<=60)timerEl.style.color='#f90';
+  else timerEl.style.color='#0f0';
 }
+
 function startTimer(){
-  timerInterval=setInterval(()=>{timeLeft--;updateTimer();if(timeLeft<=0){clearInterval(timerInterval);showEnd(true);}},1000);
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    updateTimer();
+    if(timeLeft<=0){clearInterval(timerInterval);showEnd(true);}
+  },1000);
 }
+
 function answer(obj){
-  if(busy)return;busy=true;
-  const selectedName=obj.userData.name,correctName=questions[q].answer;
-  const correct=selectedName===correctName;
+  if(busy)return;
+  busy=true;
+  const selectedName=obj.userData.name,correctName=questions[q].answer,correct=selectedName===correctName;
   if(correct)score++;
+  
   const fb=document.getElementById('fb');
   fb.className=correct?'correct':'incorrect';
-  if(correct){
-    fb.innerHTML='Correct!';
-    speak(`Correct! ${selectedName}. ${obj.userData.uses}`);
-  }else{
-    fb.innerHTML=`Incorrect<br>That's ${selectedName}<br>Correct: ${correctName}`;
-    speak(`Incorrect. That is ${selectedName}. The correct answer was ${correctName}`);
-  }
+  fb.innerHTML=correct?'✓ Correct!':`✗ Incorrect<br>That's ${selectedName}<br>Correct: ${correctName}`;
   fb.style.display='block';
+  
+  speak(correct?`Correct! ${selectedName}. ${obj.userData.uses}`:`Incorrect. That is ${selectedName}. The correct answer was ${correctName}`);
+  
   setTimeout(()=>{fb.style.display='none';q++;updateQ();busy=false;},3000);
 }
+
 function showEnd(timeUp){
   clearInterval(timerInterval);
   const fb=document.getElementById('fb');
   fb.className='correct';
-  if(timeUp){
-    fb.innerHTML=`Time's Up!<br>Score: ${score}/10`;
-    speak(`Time's up! You scored ${score} out of 10`);
-  }else{
-    fb.innerHTML=`Quiz Complete!<br>Score: ${score}/10<br>Time: ${formatTime(300-timeLeft)}`;
-    speak(`Quiz complete! You scored ${score} out of 10`);
-  }
+  fb.innerHTML=timeUp?`⏰ Time's Up!<br>Score: ${score}/10`:`🎉 Quiz Complete!<br>Score: ${score}/10<br>Time: ${formatTime(300-timeLeft)}`;
   fb.style.display='block';
+  speak(timeUp?`Time's up! You scored ${score} out of 10`:`Quiz complete! You scored ${score} out of 10`);
 }
-function formatTime(s){const m=Math.floor(s/60);const sec=s%60;return `${m}:${sec<10?'0':''}${sec}`;}
+
+function formatTime(s){const m=Math.floor(s/60),sec=s%60;return `${m}:${sec<10?'0':''}${sec}`;}
 function speak(t){if('speechSynthesis'in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=.9;speechSynthesis.speak(u);}}
 
-let targetRotX=0,targetRotY=0,currentRotX=0,currentRotY=0;
-let lastMouseX=innerWidth/2,lastMouseY=innerHeight/2,lastTouchX=0,lastTouchY=0,touching=false;
+// Controls
+let targetRotX=0,targetRotY=0,currentRotX=0,currentRotY=0,lastMouseX=innerWidth/2,lastMouseY=innerHeight/2,lastTouchX=0,lastTouchY=0,touching=false;
+
 document.addEventListener('mousemove',e=>{
   if(isVR)return;
-  const deltaX=e.clientX-lastMouseX;
-  const deltaY=e.clientY-lastMouseY;
-  targetRotY+=deltaX*.005;
-  targetRotX-=deltaY*.005;
+  const dx=e.clientX-lastMouseX,dy=e.clientY-lastMouseY;
+  targetRotY+=dx*.005;
+  targetRotX-=dy*.005;
   targetRotX=Math.max(-Math.PI/3,Math.min(Math.PI/3,targetRotX));
   lastMouseX=e.clientX;
   lastMouseY=e.clientY;
 });
+
 document.addEventListener('touchstart',e=>{touching=true;lastTouchX=e.touches[0].clientX;lastTouchY=e.touches[0].clientY;});
 document.addEventListener('touchmove',e=>{
   if(!touching||isVR)return;
@@ -217,6 +238,7 @@ document.addEventListener('touchmove',e=>{
 document.addEventListener('touchend',()=>touching=false);
 
 function animate(){
+  // Camera control
   if(!isVR){
     currentRotY+=(targetRotY-currentRotY)*.1;
     currentRotX+=(targetRotX-currentRotX)*.1;
@@ -224,63 +246,112 @@ function animate(){
     camera.rotation.y=currentRotY;
     camera.rotation.x=currentRotX;
   }
+  
+  // Rotate items
   items.forEach(o=>o.rotation.y+=.008);
-  // Gaze detection (works in both desktop and VR)
-if(!busy&&items.length>0){
-  const r=new THREE.Raycaster();r.setFromCamera(new THREE.Vector2(0,0),camera);
-  const h=r.intersectObjects(items,true);
-  if(h.length){
-    let o=h[0].object;while(o&&!o.userData.name)o=o.parent;
-    if(o?.userData.name){
-      if(gazed!==o){
-        gazed=o;
-        gazeTime=performance.now();
-        if (isVR) { reticle.visible = true; progRing.visible = true; }
-        else document.getElementById('prog').style.display='block';
-      }else if(performance.now()-gazeTime>1000){
-        if (isVR) { reticle.visible = false; progRing.visible = false; }
-        else document.getElementById('prog').style.display='none';
-        answer(o);
-        gazed=null;
-      }else{
-        // Progress animation for 3D ring
-        if (isVR) {
-          const p=(performance.now()-gazeTime)/1000;
-          progRing.geometry.dispose();
-          progRing.geometry = new THREE.RingGeometry(0.03, 0.035, 32, 1, 0, Math.PI * 2 * p);
+  
+  // Gaze detection
+  if(!busy&&items.length>0){
+    const ray=new THREE.Raycaster();
+    ray.setFromCamera(new THREE.Vector2(0,0),camera);
+    const hits=ray.intersectObjects(items,true);
+    
+    if(hits.length){
+      let obj=hits[0].object;
+      while(obj&&!obj.userData.name)obj=obj.parent;
+      
+      if(obj?.userData.name){
+        if(gazed!==obj){
+          gazed=obj;
+          gazeTime=performance.now();
+          if(isVR){
+            reticle3D.visible=true;
+            progRing3D.visible=true;
+          }else{
+            document.getElementById('prog').style.display='block';
+          }
+        }else{
+          const elapsed=performance.now()-gazeTime;
+          
+          // Animate progress ring in VR
+          if(isVR&&progRing3D.visible){
+            const progress=Math.min(elapsed/2000,1);
+            progRing3D.geometry.dispose();
+            progRing3D.geometry=new THREE.RingGeometry(.025,.03,32,1,0,Math.PI*2*progress);
+          }
+          
+          if(elapsed>2000){
+            if(isVR){
+              reticle3D.visible=false;
+              progRing3D.visible=false;
+            }else{
+              document.getElementById('prog').style.display='none';
+            }
+            answer(obj);
+            gazed=null;
+          }
         }
       }
-    }
-  }else{
-    gazed=null;
-    if (isVR) { reticle.visible = false; progRing.visible = false; }
-    else document.getElementById('prog').style.display='none';
-  }
+    }else{
+      gazed=null;
+      if(isVR){
+        reticle3D.visible=false;
+        progRing3D.visible=false;
+      }else{
+        document.getElementById('prog').style.display='none';
       }
-    }else{gazed=null;progRing.visible=false;}
+    }
   }
+  
   renderer.render(scene,camera);
 }
-renderer.domElement.addEventListener('click',()=>{if(busy||items.length<10)return;const r=new THREE.Raycaster();r.setFromCamera(new THREE.Vector2(0,0),camera);const h=r.intersectObjects(items,true);if(h.length){let o=h[0].object;while(o&&!o.userData.name)o=o.parent;if(o?.userData.name)answer(o);}});
-document.getElementById('vr').onclick=()=>{navigator.xr?.requestSession('immersive-vr').then(s=>renderer.xr.setSession(s)).catch(()=>alert('VR not available'));};
-renderer.xr.addEventListener('sessionstart', () => {
-  isVR = true;
-  reticle.visible = true;
-  vrText.visible = true;
-  document.getElementById('ui').style.display = 'none';
-  document.getElementById('vr').style.display = 'none';
-  updateVRText(); // Show current question in 3D
-  console.log('VR started - 3D UI on');
+
+// Click support
+renderer.domElement.addEventListener('click',()=>{
+  if(busy||items.length<10)return;
+  const ray=new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(0,0),camera);
+  const hits=ray.intersectObjects(items,true);
+  if(hits.length){
+    let obj=hits[0].object;
+    while(obj&&!obj.userData.name)obj=obj.parent;
+    if(obj?.userData.name)answer(obj);
+  }
 });
-renderer.xr.addEventListener('sessionend', () => {
-  isVR = false;
-  reticle.visible = false;
-  vrText.visible = false;
-  progRing.visible = false;
-  document.getElementById('ui').style.display = 'block';
-  document.getElementById('vr').style.display = 'block';
-  console.log('VR ended - HTML UI on');
+
+// VR button
+document.getElementById('vr').onclick=()=>{
+  if(!navigator.xr)return alert('WebXR not supported');
+  navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor']})
+    .then(s=>{renderer.xr.setSession(s);})
+    .catch(()=>alert('VR not available'));
+};
+
+// VR session events
+renderer.xr.addEventListener('sessionstart',()=>{
+  isVR=true;
+  reticle3D.visible=true;
+  vrText.visible=true;
+  document.querySelector('.reticle').style.display='none';
+  document.getElementById('ui').style.display='none';
+  document.getElementById('vr').style.display='none';
+  updateQ(); // Refresh VR text
+  console.log('✓ VR started - 3D UI active');
 });
+
+renderer.xr.addEventListener('sessionend',()=>{
+  isVR=false;
+  reticle3D.visible=false;
+  vrText.visible=false;
+  progRing3D.visible=false;
+  document.querySelector('.reticle').style.display='block';
+  document.getElementById('ui').style.display='block';
+  document.getElementById('vr').style.display='block';
+  console.log('✓ VR ended - HTML UI active');
+});
+
+// Start
+window.onresize=()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);};
 
 setTimeout(()=>{
   document.getElementById('loading').remove();
@@ -295,5 +366,6 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
+
 
 
