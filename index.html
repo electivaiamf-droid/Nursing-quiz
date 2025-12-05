@@ -57,10 +57,10 @@ const loader=new THREE.GLTFLoader();
 loader.load(BG,g=>scene.add(g.scene),null,()=>{const f=new THREE.Mesh(new THREE.CircleGeometry(20,64),new THREE.MeshStandardMaterial({color:0xaaa}));f.rotation.x=-Math.PI/2;scene.add(f);});
 
 function loadItems(){
-  const radius=5.2,heightBase=0.8,heightRange=1.2; // More vertical spread!
+  const radius=5.2,heightBase=0.3,heightRange=2.6; // EXTREME vertical spread!
   vocab.forEach((item,i)=>{
     const angle=i*Math.PI*2/vocab.length,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;
-    const y=heightBase+Math.random()*heightRange; // From 0.8 to 2.0 meters high
+    const y=heightBase+Math.random()*heightRange; // From 0.3 (floor) to 2.9 (ceiling)!
     loader.load(item.link,gltf=>{
       const obj=gltf.scene;obj.position.set(x,y,z);
       obj.traverse(c=>{c.userData.name=item.name;c.userData.uses=item.uses;});
@@ -209,3 +209,4 @@ setTimeout(()=>{
 </script>
 </body>
 </html>
+
